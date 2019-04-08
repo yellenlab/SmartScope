@@ -1,0 +1,129 @@
+Install Micro-Manager with PVCAM and Python 3:
+
+Install Build Programs and Libraries:
+sudo apt-get install subversion build-essential autoconf automake libtool \
+                     libboost-all-dev zlib1g-dev swig ant
+
+Make sure that python3 is installed on system. Then:
+sudo apt-get install python3-pip
+pip3 install numpy
+
+Make a mm directory:
+mkdir ~/mm && cd ~/mm
+
+Fetch Source Repositories:
+svn co https://valelab4.ucsf.edu/svn/3rdpartypublic/
+	- Since this is such a large repo, svn may give the error:
+		svn: REPORT de '/svn/3rdpartypublic/!svn/vcc/default':
+		Could not read chunk delimiter: Secure connection truncated (https://valelab4.ucsf.edu)
+	- This can be solved by running (maybe several times)
+	svn cleanup 3rdpartypublic/
+	svn update 3rdpartypublic/
+
+git clone https://github.com/micro-manager/micro-manager.git
+
+Build MM:
+cd ~/mm/micro-manager
+./autogen.sh
+PYTHON="/usr/bin/python3" ./configure --prefix="/micro-manager/src/build" �with-python="/usr/include/python3.5"
+
+make fetchdeps
+make
+	- If make exits with an  error, it seems that some of the device adapters have build errors (maybe 	just on certain machines)
+	- When I made it I got the following errors:
+	MVPCommands.h:78:30: error: �atoi� was not declared in this scope
+    	   result = atoi(s.c_str());
+                              ^
+	Makefile:574: recipe for target 'HamiltonMVP.lo' failed
+	- I fixed this with
+	gedit DeviceAdapters/HamiltonMVP/MVPCommands.h
+		- Then delete #include <string>
+		and replace it with:
+		#include <cstring>
+		#include <cstdlib>
+		- Save and exit
+make
+	- Then I got a similar error:
+	MCPCommands.h:70:30: error: �atoi� was not declared in this scope
+       	result = atoi(s.c_str());
+                              ^
+	Makefile:529: recipe for target 'IsmatecMCP.lo' failed
+	- And fixed it by:
+	gedit  DeviceAdapters/IsmatecMCP/MCPCommnads.h
+	- then add:
+	#include <cstdlib>
+	
+make
+	-Then another:
+	WieneckeSinske.cpp: In member function �int 	CAN29Axis::SetTrajectoryAcceleration(CAN29Long)�:
+	WieneckeSinske.cpp:415:31: error: �htonl� was not declared in this scope
+ 	 long tmp = htonl(acceleration);
+                               ^
+	Makefile:528: recipe for target 'WieneckeSinske.lo' failed
+	- fixed this with:
+	gedit DeviceAdapters/WieneckeSinske/CAN29.h
+	- then add:
+ 	#include <arpa/inet.h>
+
+make
+	- This time it worked. (This process may be different on different machines and with newer 	version of MM)
+sudo make install
+
+Add MMCorePy to the PYHTONPATH:
+
+PYTHONPATH=$PYTHONPATH:/micro-manager/src/build/lib/micro-manager
+gedit ~/.bashrc
+	- Add to the bottom of the file:
+	export PYTHONPATH="${PYTHONPATH}:/micro-manager/src/build/lib/micro-manager"
+
+Once micro-manager is installed, must allow it access to the usb ports:
+- Create the file: /etc/udev/rules.d/01-ttyusb.rules 
+- With contents: SUBSYSTEMS=="usb-serial", TAG+="uaccess"
+- Re-plug in microscope devices
+
+PVCAM:
+
+Instructions here: https://github.com/Photometrics/PyVCAM
+
+Install the pvcam for linux:
+Then install the pvcam-sdk for linux:
+ 
+Then:
+cd ~/
+git clone https://github.com/Photometrics/PyVCAM.git
+cd ~/PyVCAM
+sudo python3 setup.py install
+
+
+Test that everything is working:
+cd /micro-manager/src/build/lib/micro-manager
+python3
+   >>> import MMCorePy
+   >>> mmc = MMCorePy.CMMCore()  # Instance micromanager core
+   >>> mmc.getVersionInfo()
+   'MMCore version 8.7.1'
+   >>> from pyvcam import pvc
+   >>> from pyvcam.camera import Camera   
+https://valelab4.ucsf.edu/~MM/doc/MMCore/html/class_c_m_m_core.html
+   >>> pvc.init_pvcam()                   # Initialize PVCAM
+   >>> cam = next(Camera.detect_camera()) # Make sure camera is plugged in
+   >>> cam.open()                         # Open the camera.
+   >>> frame = cam.get_frame(exp_time=20)
+   >>> print("First five pixels of frame: {}, {}, {}, {}, {}".format(*frame[:5]))
+
+If none of these commands produce an error, everything is working properly!
+
+From here the PVCAM python documentation can be found here: https://github.com/Photometrics/PyVCAM/blob/master/Documents/PyVCAM%20Wrapper.md
+
+MM API can be found here:
+https://valelab4.ucsf.edu/~MM/doc/MMCore/html/class_c_m_m_core.html
+
+MM References:
+
+https://github.com/micro-manager/micro-manager/blob/mm2/doc/how-to-build.md
+
+https://micro-manager.org/wiki/Linux_installation_from_source_(Ubuntu)
+
+http://kmdouglass.github.io/posts/micro-manager-on-the-raspberry-pi.html
+
+
