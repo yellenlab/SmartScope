@@ -1,5 +1,12 @@
-from pyvcam import pvc
-from pyvcam.camera import Camera
+try:
+    from pyvcam import pvc
+    from pyvcam.camera import Camera
+except:
+    print('WARNING: pyvcam not installed')
+try:
+    import MMCorePy
+except:
+    print('WARNING: Micro-Manager is not installed')
 
 def start_cam():
     ''' Initilizes the PVCAM
@@ -16,8 +23,7 @@ def start_cam():
         cam.speed_table_index = 0
         cam.gain = 1
     except:
-        print('Could not start camera')
-        return False
+        raise RuntimeError('Could not start Camera')
     return cam
 
 def close_cam(cam):
@@ -31,19 +37,10 @@ def close_cam(cam):
     except:
         print('Could not close Camera')
 
-def set_pos(mmc, x, y, z=None):
-    ''' Sets a microscope position
-    args:
-        - mmc instance
-        - x (float)
-        - y (float)
-        - z (float) (default is None - keeps previous foucs)
-    '''
-    if z is not None:
-        mmc.setXYPosition(x,y)
-        mmc.setPosition(z)
-        mmc.waitForSystem()
-    else:
-        mmc.setXYPosition(x,y)
-        mmc.waitForSystem()
+def get_mmc(cfg="../../config/MMConfig_YellenLab_ubuntu.cfg"):
+    mmc = MMCorePy.CMMCore()
+    mmc.loadSystemConfiguration(cfg)
+    mmc.setFocusDevice('FocusDrive')
+    return mmc
+
 

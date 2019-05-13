@@ -1,128 +1,146 @@
-'''TODO 
-    - train model 
 
-'''
 import sys
-sys.path.insert(0, '../miq_p3')
+sys.path.insert(0, 'miq')
 
-import goto
 import miq
-import MMCorePy
-from pyvcam import pvc
-from pyvcam.camera import Camera
-import imageio
 import numpy as np
-from skimage import exposure
-from skimage import color
-from skimage import io as sk_io
 import utils
 import position as pos
-import numpy as np
 import scipy.interpolate
+import time
 
-def get_focus(xy_points, mmc, z_step=3, pred_thresh=2.25):
-    '''Finds the best focus at each interior chip location
- 
-    args:
-    xy_points: a StagePosition[] of the points to find 
-    focus. Intended to be the output from Chip().get_focus_xy_points()
-    mmc: Micro-Manager instance
-    z_step: step size between focus heights (decided when training focus model)
- 
-    returns: PositionList() of xy_points locations plus best z height
+def focus_from_image_stack(xy_points, mmc, delta_z=5, total_z=150):
+    ''' Brute force focus algorthim 
+    
+    args: 
+        xy_points: a PositionList() of the locations to 
+            focus at
+        mmc: Micromanger instance
+        delta_z: distacne between images (um)
+        total_z: total imaging distance (all focused points on 
+            chip should be in this range)
+    
+    returns:
+        focused PositionList()
     '''
- 
-    focused_points = pos.PositionList()
-    starting_z_value = mmc.getPosition()
+    start_time = time.time()
 
     # Get focus model
     focus_model = miq.get_classifier()
 
-    # Start Camera
+    pos_list = pos.PositionList()
+
+    # make z position array
+    cur_pos = mmc.getPosition()
+    start_pos = cur_pos + total_z/2
+    end_pos = cur_pos - total_z/2
+    num_steps = (start_pos-end_pos) / delta_z
+    z = np.linspace(start_pos, end_pos, num_steps)
+
     cam = utils.start_cam()
-    
-    # Loop through all of the focus locations
-    for location in xy_points:
-        # If we have more that 3 focused points, we
-        # can interpolate the z height based on the
-        # plane that all of the known points create
-        if focused_points.getNumberOfPositions() > 4:
-            predicted_z = predict_z_height(focused_points, (location.x, location.y))
-            utils.set_pos(mmc, location.x, location.y, predicted_z)
-        # We do not have enough points to interpolate,
-        # keep the previous z height
-        else:
-            utils.set_pos(mmc, location.x, location.y)
-         
-        last_predit = -1
-        direction = 1
-        iters = 0
-        bounce = False
-        hist = []
 
-        while True:
-            # Read from camera frame
+    for posit in xy_points:
+        # Go to the x,y position 
+        pos.set_pos(mmc, x=posit.x, y=posit.y)
+
+        preds = []
+        for curr_z in z:
+            mmc.setPosition(curr_z)
+            mmc.waitForSystem()
             frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
-            prediction = focus_model.score(frame)
-            print (prediction)
-             
-            if prediction < pred_thresh or bounce == True:
-                ''' Prediction is good, add to focused_points and move 
-                    to next location 
-                '''
-                print ('Done')
-                zPos = pos.StagePosition()
-                zPos.stageName = 'zStage'
-                zPos.numAxes = 1
-                zPos.z = mmc.getPosition()
-                msp = pos.MultiStagePosition()
-                msp.add(location)
-                msp.add(zPos)
-                focused_points.addPosition(msp)
-                break
-            elif (not (last_predit == -1)) and prediction < last_predit:
-                ''' Focus is getting better, keep going in same direction '''
-                
-                new_z = starting_z_value + direction*z_step
-                print ('1', new_z)
-                mmc.setPosition(new_z)
-                mmc.waitForSystem()
-                hist.append(1)
-            elif (not (last_predit == -1)) and prediction > last_predit:
-                ''' Focus is getting worse, move in opposite direction '''
-                
-                direction = -direction
-                new_z = starting_z_value + direction*z_step
-                print('2', new_z)
-                mmc.setPosition(new_z)
-                mmc.waitForSystem()
-                hist.append(-1)
-            else:
-                ''' We do not have a previous direction - move one step in 
-                    the +z direction 
-                '''
-                
-                new_z = starting_z_value + z_step
-                print('3', new_z)
-                mmc.setPosition(new_z)
-                mmc.waitForSystem()
-                hist.append(1)
-
-            starting_z_value = new_z
-            last_predit = prediction
-            iters = iters +1
-
-            # We were moving in the right direction, but have moved too far.
-            if len(hist) > 3:
-                if hist[::-1][1] == hist[::-1][2] and (not hist[::-1][0] == hist[::-1][1]):
-                    bounce = True
-            if iters == 20:
-                # Could not find the focus for some reason, ignore this point
-                print ('Could not find focus')
-                break
+            preds.append(focus_model.score(frame))
+        # find the index of the min focus prediction
+        best_focus_index = np.argmin(preds)
+        # append to the PositionList 
+        sp = pos.StagePosition(x=posit.x, y=posit.y,
+                               z=z[best_focus_index])
+        pos_list.append(sp)
     
     utils.close_cam(cam)
-    return focused_points
+    total_time = time.time() - start_time
+    print ('Completed focus in', total_time, 'seconds')
+    return pos_list
+
+def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150):
+    start_time = time.time()
+
+    # Get focus model
+    focus_model = miq.get_classifier()
+
+    pos_list = pos.PositionList()
+
+    # make z position array
+    cur_pos = mmc.getPosition()
+    start_pos = cur_pos + total_z/2
+    end_pos = cur_pos - total_z/2
+    num_steps = (start_pos-end_pos) / delta_z
+    z = np.linspace(start_pos, end_pos, num_steps)
+
+    cam = utils.start_cam()
+
+    # Go to the first x,y position 
+    pos.set_pos(mmc, x=xy_points[0].x, y=xy_points[0].y)
+
+    preds = []
+    for curr_z in z:
+        pos.set_pos(mmc, z=curr_z)
+        frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+        preds.append(focus_model.score(frame))
+    # find the index of the min focus prediction
+    best_focus_index = np.argmin(preds)
+    # append to the PositionList 
+    last_z = z[best_focus_index]
+    sp = pos.StagePosition(x=xy_points[0].x, y=xy_points[0].y,
+                            z=last_z)
+    pos_list.append(sp)
+
+    z_range = range(-35, 35, 10)
+
+    for i, posit in enumerate(xy_points):
+        # We already did the first point
+        if i == 0:
+            best_focus_index = 0
+            continue
+        
+        preds = []
+        # Go to the next x,y position with the previous best focus 
+        pos.set_pos(mmc, x=posit.x, y=posit.y, z=last_z)
+        # frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+        # first_score = focus_model.score(frame)
+        
+        if best_focus_index > 3.5:
+            # Reverse the order of the list
+            z_range = z_range[::-1]
+
+        # Build list from last position
+        # in order that makes sense 
+        z_list = [(last_z+i) for i in z_range]
+
+        for j, curr_z in enumerate(z_list):
+            pos.set_pos(mmc, z=curr_z)
+            frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+            preds.append(focus_model.score(frame))
+
+            if j > 0:
+                if preds[j] > preds[j-1]:
+                    # Focus got worse
+                    break
+
+        
+        # find the index of the min focus prediction
+        best_focus_index = np.argmin(preds)
+        # append to the PositionList 
+        last_z = z_list[best_focus_index]
+        sp = pos.StagePosition(x=posit.x, y=posit.y,
+                                z=last_z)
+        pos_list.append(sp)
+    
+    utils.close_cam(cam)
+    total_time = time.time() - start_time
+    print ('Completed focus in', total_time, 'seconds')
+    return pos_list
+
+
 
 def predict_z_height(pos_list, xy_location=None):
     '''Interpolate the z value at xy_location
@@ -133,23 +151,15 @@ def predict_z_height(pos_list, xy_location=None):
  
     returns: interpolated z height (float), interpolation function
     '''
-    if pos_list.getNumberOfPositions() < 4:
+    if len(pos_list) < 4:
         raise ValueError("Position List must have at least 4 values")
  
-    x_vals = []
-    y_vals = []
-    z_vals = []
- 
-    for position in pos_list.positions:
-        x_vals.append(position.get(stageName='xyStage').x)
-        y_vals.append(position.get(stageName='xyStage').y)
-        z_vals.append(position.get(stageName='zStage').z)
-     
-    print ('X : ', x_vals)
-    print ('Y : ', y_vals)
-    print ('Z : ', z_vals)
-
-    f = scipy.interpolate.interp2d(x_vals, y_vals, z_vals, kind='cubic')
+    f = scipy.interpolate.interp2d(
+            [p.x for p in pos_list], 
+            [p.y for p in pos_list], 
+            [p.z for p in pos_list], 
+            kind='cubic')
+    
     if xy_location is None:
         return f
     return f(xy_location[0], xy_location[1]), f

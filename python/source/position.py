@@ -1,201 +1,252 @@
 
-'''
-This file impliments the PositionList, StagePosition, 
-and MultiStagePosition types as used in micro-manager 
-beanshell. 
-
-TODO:
-    - Add PositionList JSON serialize funtion
-    - Add PositionList save/load from file 
-'''
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
+import numpy as np
+import json
+from collections import defaultdict
+from collections import OrderedDict
+import utils
+import time
+import tifffile as tif
+import os
+import position as pos
+import chip
 
 
 class PositionList:
-    def __init__(self, msp=None):
-        self.positions = []
-        if msp is not None and isinstance(msp, MultiStagePosition):
-            self.addPosition(msp)
 
-    def addPosition(self, pos=None, idx=None):
-        if idx is None and pos is not None:
-            self.positions.append(pos)
-        elif idx is not None and pos:
-            self.positions.insert(idx, pos)
+    def __init__(self, sp=None, positions=None):
+        if positions is not None:
+            self.positions = positions
         else:
-            return False
-
-    def getPositionIndex(self, label):
-        for idx, p in enumerate(self.positions):
-            if p.label == label:
-                return idx
-        return False
+            self.positions = []
+        if sp is not None and isinstance(sp, StagePosition):
+            self.append(sp)
     
-    def relacePosition(self, idx, pos):
-        assert self.isLabelUnique(pos.label),  True
-        if idx > 0 and idx < len(self.positions):
-            self.positions[idx] = pos
-    
-    def getNumberOfPositions(self):
+    def __len__(self):
         return len(self.positions)
-
-    def clearAllPositions(self):
-        self.positions.clear()
     
-    def removePosition(self, idx):
-        self.positions.pop(idx)
-
-    def isLabelUnique(self, label):
-        for pos in self.positions:
-            if pos.label == label:
-                return False
-        return True
+    def __add__(self, other):
+        posits = self.positions + other.positions
+        return PositionList(positions=posits)
     
-    def getPosition_xyz(self, idx):
-        return self.positions[idx].get(index=0).x, self.positions[idx].get(index=0).y, self.positions[idx].get(index=1).z
+    def __iter__(self):
+        return iter(self.positions)
 
-    def visualize(self):
-        fig = plt.figure()
-        plot = fig.add_subplot(111,projection='3d')
+    def __getitem__(self, key):
+        return self.positions[key]
+    
+    def __setitem__(self, key, val):
+        self.positions[key] = val
+    
+    def __delitem__(self, key):
+        del self.positions[key]
+    
+    def __str__(self):
+        string = ''
+        for p in self.positions:
+            string = string + str(p) + '\n'
+        return string
+    
+    def append(self, item):
+        self.positions.append(item)
+    
+    def insert(self, item, idx):
+        self.positions.insert(idx, item)
 
-        xpos = []
-        ypos = []
-        zpos = []
+    def visualize(self, xy=False):
+        ''' Plots a 3D PositionList 
+        arg:
+            xy: bool - if True plot x vs y in 2D
+        '''
+        if xy is False:
+            fig = plt.figure()
+            plot = fig.add_subplot(111,projection='3d')
 
-        xyStage = self.positions[0].defaultXYStage
-        zStage = self.positions[0].defaultZStage
+            xpos = [i.x for i in self.positions]
+            ypos = [i.y for i in self.positions]
+            zpos = [i.z for i in self.positions]
 
-        for i in range(self.getNumberOfPositions()):
-            xpos.append(self.positions[i].get(stageName=xyStage).x)
-            ypos.append(self.positions[i].get(stageName=xyStage).y)
-            zpos.append(self.positions[i].get(stageName=zStage).z)
+            plot.scatter(xpos,ypos,zpos)
+            plot.set_xlabel('X')
+            plot.set_ylabel('Y')
+            plot.set_zlabel('Z')
+        else:
+            x = [p.x for p in self.positions]
+            y = [p.y for p in self.positions]
+
+            plt.scatter(x,y)
+            plt.title('Position List')
+            plt.xlabel('X')
+            plt.ylabel('Y')
+    
+    def image(self, mmc, save_dir):
+        ''' Images the positions in the PositionList
+
+        args: 
+            mmc: Micormanager instance
+            save_dir: Directory to save tiff files 
+        '''
+        # Make the directory to save to and change into it
+        dir_name = save_dir+'/'+time.strftime("%Y-%m-%d_%H:%M")
+        os.makedirs(dir_name)
+        os.chdir(dir_name)
+
+        cam = utils.start_cam()
+
+        for ctr, pos in enumerate(self.positions):
+            # set position and wait
+            set_pos(mmc, pos.x, pos.y, z=pos.z)
+
+            # Get image and save 
+            frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+            tif.imwrite('img'+'_'+str(ctr)+'.tif', frame)
+            time.sleep(0.05)
         
-        plot.scatter(xpos,ypos,zpos)
-        plot.set_xlabel('X')
-        plot.set_ylabel('Y')
-        plot.set_zlabel('Z')
+        utils.close_cam(cam)
+    
+    def save(self, filename, path):
+        ''' Save PositionList() as a json file
+        '''
+        # Convert to dict form 
+        data = defaultdict(dict)
+        for i, val in enumerate(self.positions):
+            data[i]['x'] = val.x
+            data[i]['y'] = val.y
+            data[i]['z'] = val.z
+            data[i]['theta'] = val.theta
+            data[i]['numAxes'] = val.numAxes
+            
+        # Write to file
+        with open(path + filename + '.json', 'w') as outfile:
+            json.dump(data, outfile)
+    
+def load(filename, path):
+    ''' Load PositionList() from json file 
+    
+    args:
+        filename: string 
+        path: directory to save file 
+    returns:
+        PositionList() 
+    '''
+    with open(path + filename + '.json') as f:
+        data = json.load(f,object_pairs_hook=OrderedDict)
+    sp = []
+    for key, val in data.items():
+        sp.append(StagePosition(x=val['x'], y=val['y'],
+                                    z=val['z'], theta=val['theta']))
+    return PositionList(positions=sp)
 
+def current(mmc):
+    ''' Gets the current stage position 
+    
+    arg:
+        mmc: Micromanager instance
+    returns:
+        (x_pos, y_pos, z_pos)
+    '''
+    return (mmc.getXPosition(), 
+            mmc.getYPosition(),
+            mmc.getPosition())
+
+def set_pos(mmc, x=None, y=None, z=None):
+    ''' Sets a microscope position
+    args:
+        - mmc instance
+        - x (float)
+        - y (float)
+        - z (float) (default is None - keeps previous foucs)
+    '''
+    if z is not None:
+        if x is None and y is None:
+            mmc.setPosition(z)
+            mmc.waitForSystem()
+        else:
+            mmc.setXYPosition(x,y)
+            mmc.setPosition(z)
+            mmc.waitForSystem()
+    else:
+        mmc.setXYPosition(x,y)
+        mmc.waitForSystem()
+    
 
 class StagePosition:
-    def __init__(self):
-        self.stageName = 'Undefined'
-        self.x = 0.0
-        self.y = 0.0
-        self.z = 0.0
-        self.numAxes = 1
+    ''' Stores the data of one instantanious stage position 
+    args:
+        x: x position (optional)
+        y: y position (optional)
+        z: z position (optional)
+        theta: theta position (optional)
+    '''
+    def __init__(self, x=None, y=None, z=None, theta=None):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.theta = theta
+        self.numAxes = 0
+        for val in [x, y, z, theta]:
+            if val is not None:
+                self.numAxes = self.numAxes + 1
     
-    def equals(self, pos):
-        if not isinstance(pos, StagePosition):
-            return False
-        return (self.x == pos.x and
-                self.y == pos.y and
-                self.z == pos.z and
-                self.numAxes == pos.numAxes and
-                self.stageName == pos.stageName)
+    def __eq__(self, other):
+        ''' Allows use of == operator on two StagePositions
+        '''
+        return (self.x == other.x and
+                self.y == other.y and
+                self.z == other.z and
+                self.theta == other.theta and
+                self.numAxes == other.numAxes)
     
-    def getVerbose(self):
+    def __str__(self):
+        ''' Allows for print(StagePosition()) to see values
+        '''
+        if self.numAxes == 0:
+            return 'No vals'
         if self.numAxes == 1:
-            return self.stageName + "(" + str(self.x) + ")"
+            return "(" + str(self.x) + ")"
         elif self.numAxes == 2:
-            return self.stageName + "(" + str(self.x) + "," + str(self.y) + ")"
+            return "(" + str(self.x) + "," + str(self.y) + ")"
+        elif self.numAxes ==3:
+            return ("(" + str(self.x) + "," + str(self.y) + 
+                    "," + str(self.z) + ")")
         else:
-            return self.stageName + "(" + str(self.x) + "," + str(self.y) + "," + str(self.z) + ")"
-
-
-class MultiStagePosition:
-    def __init__(self, xyStage=None,
-                       x=None,
-                       y=None, 
-                       zStage=None,
-                       z=None):
-        
-        self.stagePosList = []
-        self.label = 'Undefined'
-        self.defaultZStage = ''
-        self.defaultXYStage = ''
-        self.gridRow = 0
-        self.gridCol = 0
-        self.properties = {}
-
-        if (xyStage is not None and 
-                  x is not None and 
-                  y is not None and 
-                  zStage is not None and 
-                  z is not None):
-            xyPos = StagePosition()
-            xyPos.stageName = 'xyStage'
-            xyPos.numAxes = 2
-            xyPos.x = x
-            xyPos.y = y
-            self.defaultXYStage = 'xyStage'
-            self.add(xyPos)
-
-            zPos = StagePosition()
-            zPos.stageName = 'zStage'
-            zPos.numAxes = 1
-            zPos.z = z
-            self.defaultZStage = 'zStage'
-            self.add(zPos)
+            return ("(" + str(self.x) + "," + str(self.y) + 
+                    "," + str(self.z) + "," + str(self.theta) + ")")
     
-    def add(self, sp):
-        self.stagePosList.append(sp)
-
-    def remove(self, sp):
-        self.stagePosList.remove(sp)
-
-    def size(self):
-        return len(self.stagePosList)
-    
-    def get(self, index=None, stageName=None, ):
-        if index is not None:
-            try:
-                return self.stagePosList[index]
-            except Exception as e:
-                print(e)
-        elif stageName is not None:
-            for sp in self.stagePosList:
-                if sp.stageName == stageName:
-                    return sp
-            return False
-        return False
-    
-    def hasProperty(self, key):
-        return key in self.properties
-    
-    def getProperty(self, key):
-        if key in self.properties:
-            return self.properties[key]
+    def dist(self, other):
+        ''' l2 distance between two stage postions. eg stage1.dist(stage2)
+        args: 
+            other: StagePosition()
+        returns:
+            distance between points 
+        '''
+        if self.numAxes == 0:
+            raise ValueError('StagePosition does not have any values')
+        if self.numAxes == 1:
+            return np.sqrt(np.square(self.x - other.x))
+        elif self.numAxes == 2:
+            return np.sqrt(np.square(self.x - other.x) + 
+                       np.square(self.y - other.y))
+        elif self.numAxes ==3:
+            return np.sqrt(np.square(self.x - other.x) + 
+                       np.square(self.y - other.y) + 
+                       np.square(self.z - other.z))
         else:
-            return False
+            return "TODO"
     
-    def equals(self, msp):
-        if not isinstance(msp, MultiStagePosition):
-            return False
-        
-        if not (self.label == msp.label and
-                self.defaultXYStage == msp.defaultXYStage and
-                self.defaultZStage == msp.defaultZStage and
-                self.gridRow == msp.gridRow and 
-                self.gridCol == msp.gridCol and
-                len(self.stagePosList) == len(msp.stagePosList)):
-            return False
+    def goto(self, mmc, xy_only=False):
+        ''' Goes to the stage position
+        args:
+            mmc: Micro-Manager instance
+            xy_only: ingnore the z axis
+        '''
+        if xy_only:
+            mmc.setXYPosition(self.x,self.y)
+            mmc.waitForSystem()
+        else:
+            mmc.setXYPosition(self.x,self.y)
+            mmc.setPosition(self.z)
+            mmc.waitForSystem()
 
-        for i in range(self.size()):
-            if not self.get(index=i) == msp.get(index=i):
-                return False
-        
-        for key in self.properties.items():
-            if not self.properties[key] == msp.properties[key]:
-                return False
-
-        if not len(self.properties) == len(msp.properties):
-            return False
-
-        return True 
-    
-    def print_msp(self):
-        print('X = ', self.stagePosList[0].x)
-        print('Y = ', self.stagePosList[0].y)
-        print('Z = ', self.stagePosList[1].z)
    
