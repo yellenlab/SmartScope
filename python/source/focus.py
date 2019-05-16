@@ -4,7 +4,7 @@ sys.path.insert(0, 'miq')
 
 import miq
 import numpy as np
-import utils
+import sc_utils as utils
 import position as pos
 import scipy.interpolate
 import time
@@ -58,7 +58,7 @@ def focus_from_image_stack(xy_points, mmc, delta_z=5, total_z=150):
     
     utils.close_cam(cam)
     total_time = time.time() - start_time
-    print ('Completed focus in', total_time, 'seconds')
+    # print ('Completed focus in', total_time, 'seconds')
     return pos_list
 
 def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150):
@@ -137,7 +137,7 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150):
     
     utils.close_cam(cam)
     total_time = time.time() - start_time
-    print ('Completed focus in', total_time, 'seconds')
+    # print ('Completed focus in', total_time, 'seconds')
     return pos_list
 
 
@@ -163,4 +163,29 @@ def predict_z_height(pos_list, xy_location=None):
     if xy_location is None:
         return f
     return f(xy_location[0], xy_location[1]), f
- 
+
+def focus_point(mmc, delta_z=10, total_z=150):
+    # Get focus model
+    focus_model = miq.get_classifier()
+    
+    # make z position array
+    cur_pos = mmc.getPosition()
+    start_pos = cur_pos + total_z/2
+    end_pos = cur_pos - total_z/2
+    num_steps = (start_pos-end_pos) / delta_z
+    z = np.linspace(start_pos, end_pos, num_steps)
+
+    cam = utils.start_cam()
+
+    preds = []
+    for curr_z in z:
+        pos.set_pos(mmc, z=curr_z)
+        frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+        preds.append(focus_model.score(frame))
+    # find the index of the min focus prediction
+    best_focus_index = np.argmin(preds)
+    # append to the PositionList 
+    last_z = z[best_focus_index]
+
+    utils.close_cam(cam)
+    return last_z

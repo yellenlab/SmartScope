@@ -102,7 +102,7 @@ class Chip:
                                     z=focus_func(posit[0], posit[1])[0])
                 poslist.append(s)
             # Each time though reverse the order to snake through chip
-            x_list = xlist[::-1]
+            x_list = x_list[::-1]
         return poslist
 
     def get_focus_position_list(self, fp_x, fp_y):

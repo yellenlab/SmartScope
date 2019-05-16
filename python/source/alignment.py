@@ -83,3 +83,4 @@ def move_to_center(mmc, center):
     new_y = curry-y_change
     
     pos.set_pos(mmc, x=new_x, y=new_y)
+

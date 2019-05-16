@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 import time
 import cv2
-import utils
+import sc_utils as utils
 
 def py_lab():
     cam = utils.start_cam()

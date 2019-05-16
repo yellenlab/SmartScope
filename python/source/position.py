@@ -5,7 +5,7 @@ import numpy as np
 import json
 from collections import defaultdict
 from collections import OrderedDict
-import utils
+import sc_utils as utils
 import time
 import tifffile as tif
 import os
