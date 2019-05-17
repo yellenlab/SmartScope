@@ -96,7 +96,7 @@ class Chip:
         for y_ctr in range(y_steps):
             for x_ctr in x_list:
                 rotation = origin + [cam_frame_width/2 + cam_frame_width*x_ctr, 
-                                    (cam_frame_height/2 + cam_frame_height*y_ctr + 100)]
+                                    (cam_frame_height/2 + cam_frame_height*y_ctr - 150)]
                 posit = np.matmul(self.R, rotation)
                 s = pos.StagePosition(x=posit[0], y=posit[1], 
                                     z=focus_func(posit[0], posit[1])[0])

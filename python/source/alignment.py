@@ -65,9 +65,10 @@ def find_alignment_mark(model):
     
     results = model.detect([frame], verbose=1)
     r = results[0]
-    print ('ran detect')
-    centroids = get_mark_center(r['rois'][0])
-    return centroids, orig_frame, frame, r
+    if len(r['rois']) > 0:
+        centroids = get_mark_center(r['rois'][0])
+        return centroids, orig_frame, frame, r
+    raise NoMarkError("No Alignment Mark in Frame")
 
 def move_to_center(mmc, center):
     currx = mmc.getXPosition()
@@ -84,3 +85,17 @@ def move_to_center(mmc, center):
     
     pos.set_pos(mmc, x=new_x, y=new_y)
 
+class Error(Exception):
+    """Base class for exceptions in alignment."""
+    pass
+
+class NoMarkError(Error):
+    """Exception raised for errors in the alignment.
+
+    Attributes:
+        expression -- input expression in which the error occurred
+        message -- explanation of the error
+    """
+
+    def __init__(self, message):
+        self.message = message

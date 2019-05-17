@@ -88,7 +88,7 @@ class PositionList:
             save_dir: Directory to save tiff files 
         '''
         # Make the directory to save to and change into it
-        dir_name = save_dir+'/'+time.strftime("%Y-%m-%d_%H:%M")
+        dir_name = save_dir+'\\'+time.strftime("%Y-%m-%d_%H_%M")
         os.makedirs(dir_name)
         os.chdir(dir_name)
 
