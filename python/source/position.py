@@ -11,7 +11,7 @@ import tifffile as tif
 import os
 import position as pos
 import chip
-
+import skimage.io 
 
 class PositionList:
 
@@ -80,7 +80,7 @@ class PositionList:
             plt.xlabel('X')
             plt.ylabel('Y')
     
-    def image(self, mmc, save_dir):
+    def image(self, mmc, save_dir, save_jpg=False):
         ''' Images the positions in the PositionList
 
         args: 
@@ -101,6 +101,9 @@ class PositionList:
             # Get image and save 
             frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
             tif.imwrite('img'+'_'+str(ctr)+'.tif', frame)
+            if save_jpg:
+                os.makedirs('jpg', exist_ok=True)
+                skimage.io.imsave('jpg/img'+'_'+str(ctr)+'.tif', frame)
             time.sleep(0.05)
         
         utils.close_cam(cam)
