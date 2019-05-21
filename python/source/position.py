@@ -12,6 +12,7 @@ import os
 import position as pos
 import chip
 import skimage.io 
+from constants import *
 
 class PositionList:
 
@@ -99,7 +100,7 @@ class PositionList:
             set_pos(mmc, pos.x, pos.y, z=pos.z)
 
             # Get image and save 
-            frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+            frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
             tif.imwrite('img'+'_'+str(ctr)+'.tif', frame)
             if save_jpg:
                 os.makedirs('jpg', exist_ok=True)

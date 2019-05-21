@@ -8,6 +8,7 @@ import sc_utils as utils
 import position as pos
 import scipy.interpolate
 import time
+from constants import *
 
 def get_z_list(center, delta_z, total_z):
     ''' Gets an evenly spaced list
@@ -53,7 +54,7 @@ def focus_from_last_point_bf(xy_points, mmc, delta_z=5, total_z=150, next_point_
     preds = []
     for curr_z in z:
         pos.set_pos(mmc, z=curr_z)
-        frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+        frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
         preds.append(focus_model.score(frame))
     # find the index of the min focus prediction
     best_focus_index = np.argmin(preds)
@@ -87,7 +88,7 @@ def focus_from_last_point_bf(xy_points, mmc, delta_z=5, total_z=150, next_point_
 
         for j, curr_z in enumerate(z_list):
             pos.set_pos(mmc, z=curr_z)
-            frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+            frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
             preds.append(focus_model.score(frame))
         
         # find the index of the min focus prediction
@@ -132,7 +133,7 @@ def focus_from_image_stack(xy_points, mmc, delta_z=5, total_z=150):
         for curr_z in z:
             mmc.setPosition(curr_z)
             mmc.waitForSystem()
-            frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+            frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
             preds.append(focus_model.score(frame))
         # find the index of the min focus prediction
         best_focus_index = np.argmin(preds)
@@ -177,7 +178,7 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
     preds = []
     for curr_z in z:
         pos.set_pos(mmc, z=curr_z)
-        frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+        frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
         preds.append(focus_model.score(frame))
     # find the index of the min focus prediction
     best_focus_index = np.argmin(preds)
@@ -211,7 +212,7 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
 
         for j, curr_z in enumerate(z_list):
             pos.set_pos(mmc, z=curr_z)
-            frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+            frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
             preds.append(focus_model.score(frame))
 
             if j > 0:
@@ -271,7 +272,7 @@ def focus_point(mmc, delta_z=10, total_z=150):
     preds = []
     for curr_z in z:
         pos.set_pos(mmc, z=curr_z)
-        frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+        frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
         preds.append(focus_model.score(frame))
     # find the index of the min focus prediction
     best_focus_index = np.argmin(preds)

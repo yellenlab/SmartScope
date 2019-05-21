@@ -2,6 +2,7 @@ from matplotlib import pyplot as plt
 import time
 import cv2
 import sc_utils as utils
+from constants import *
 
 def py_lab():
     cam = utils.start_cam()
@@ -9,7 +10,7 @@ def py_lab():
         while True:
             t1 = time.time()
             t2 = time.time()
-            frame = cam.get_frame(exp_time=1).reshape(cam.sensor_size[::-1])
+            frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
             print (frame.shape)
             plt.imshow(frame, cmap="gray")
             t3 = time.time()
