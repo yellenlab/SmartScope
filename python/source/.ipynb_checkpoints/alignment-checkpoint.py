@@ -1,5 +1,5 @@
 import os
-import sys
+# import sys
 import random
 import math
 import numpy as np
@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import time
 from numba import autojit
 
-sys.path.append('./maskrcnn')
-sys.path.append('./dataset')
+# sys.path.append('./maskrcnn')
+# sys.path.append('./dataset')
 
 import maskrcnn.utils as utils
 import model as modellib
@@ -20,10 +20,11 @@ import config
 import mark_dataset
 import sc_utils
 import position as pos
+from const import *
 
 ROOT_DIR = os.path.abspath(".")
 MODEL_DIR = os.path.join(ROOT_DIR, "logs")
-model_path = os.path.join(ROOT_DIR, "adjusted_frame_alignment_20.h5")
+model_path = os.path.join(ROOT_DIR, "alignment_30.h5")
 classnames = ['BG', 'mark']
 
 def get_inference_model():
@@ -62,7 +63,7 @@ def get_mark_center(rois):
 
 def get_frame():
     cam = sc_utils.start_cam()
-    frame = cam.get_frame(exp_time=1)
+    frame = cam.get_frame(exp_time=EXPOSURE)
     sc_utils.close_cam(cam)
     print(frame.shape)
     return frame
@@ -82,15 +83,10 @@ def move_to_center(mmc, center):
     currx = mmc.getXPosition()
     curry = mmc.getYPosition()
 
-    x = center[0]
-    y = center[1]
-    
-    x_change = (x-1344)*0.45
-    y_change = (y-1100)*0.45
-    
+    x_change = (center[0]-(CAMERA_PIXELS[1]/2))*FRAME_TO_PIXEL_RATIO
+    y_change = (center[1]-(CAMERA_PIXELS[0]/2))*FRAME_TO_PIXEL_RATIO
     new_x = currx-x_change
     new_y = curry-y_change
-    
     pos.set_pos(mmc, x=new_x, y=new_y)
 
 class Error(Exception):

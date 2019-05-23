@@ -1,5 +1,5 @@
 import os
-import sys
+# import sys
 import random
 import math
 import numpy as np
@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import time
 from numba import autojit
 
-sys.path.append('./maskrcnn')
-sys.path.append('./dataset')
+# sys.path.append('./maskrcnn')
+# sys.path.append('./dataset')
 
 import maskrcnn.utils as utils
 import model as modellib
@@ -20,11 +20,11 @@ import config
 import mark_dataset
 import sc_utils
 import position as pos
-from constants import *
+from const import *
 
 ROOT_DIR = os.path.abspath(".")
 MODEL_DIR = os.path.join(ROOT_DIR, "logs")
-model_path = os.path.join(ROOT_DIR, "adjusted_frame_alignment_20.h5")
+model_path = os.path.join(ROOT_DIR, "alignment_30.h5")
 classnames = ['BG', 'mark']
 
 def get_inference_model():
@@ -79,12 +79,12 @@ def find_alignment_mark(model):
         return centroids, orig_frame, frame, r
     raise NoMarkError("No Alignment Mark in Frame")
 
-def move_to_center(mmc, center, pixels=PIXELS, frame_to_pixel_ratio=FRAME_TO_PIXEL_RATIO):
+def move_to_center(mmc, center):
     currx = mmc.getXPosition()
     curry = mmc.getYPosition()
 
-    x_change = (center[0]-pixels[1])*frame_to_pixel_ratio
-    y_change = (center[1]-pixels[0])*frame_to_pixel_ratio
+    x_change = (center[0]-(CAMERA_PIXELS[1]/2))*FRAME_TO_PIXEL_RATIO
+    y_change = (center[1]-(CAMERA_PIXELS[0]/2))*FRAME_TO_PIXEL_RATIO
     new_x = currx-x_change
     new_y = curry-y_change
     pos.set_pos(mmc, x=new_x, y=new_y)
