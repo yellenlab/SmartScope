@@ -24,7 +24,7 @@ from const import *
 
 ROOT_DIR = os.path.abspath(".")
 MODEL_DIR = os.path.join(ROOT_DIR, "logs")
-model_path = os.path.join(ROOT_DIR, "alignment_30.h5")
+model_path = os.path.join(ROOT_DIR, "adjusted_frame_alignment_20_original.h5")
 classnames = ['BG', 'mark']
 
 def get_inference_model():
@@ -49,7 +49,7 @@ def convert_to_mrcnn_format(image):
     '''
     new_im = np.zeros((image.shape[0], image.shape[1], 3))
     for ix, iy in np.ndindex(image.shape):
-        val = np.ceil(image[ix,iy] / 255) * 16
+        val = np.ceil(image[ix,iy] / 255) # * 16
         new_im[ix,iy] = [val,val,val]
     new_im = new_im.astype('uint8')
     return new_im
@@ -85,8 +85,8 @@ def move_to_center(mmc, center):
 
     x_change = (center[0]-(CAMERA_PIXELS[1]/2))*FRAME_TO_PIXEL_RATIO
     y_change = (center[1]-(CAMERA_PIXELS[0]/2))*FRAME_TO_PIXEL_RATIO
-    new_x = currx-x_change
-    new_y = curry-y_change
+    new_x = currx+x_change
+    new_y = curry+y_change
     pos.set_pos(mmc, x=new_x, y=new_y)
 
 class Error(Exception):
