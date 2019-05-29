@@ -1,5 +1,5 @@
 import os
-# import sys
+import sys
 import random
 import math
 import numpy as np
@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import time
 from numba import autojit
 
-# sys.path.append('./maskrcnn')
-# sys.path.append('./dataset')
+sys.path.append('./maskrcnn')
+sys.path.append('./dataset')
 
 import maskrcnn.utils as utils
 import model as modellib
@@ -22,17 +22,17 @@ import sc_utils
 import position as pos
 from const import *
 
-ROOT_DIR = os.path.abspath(".")
-MODEL_DIR = os.path.join(ROOT_DIR, "logs")
-model_path = os.path.join(ROOT_DIR, "alignment_30.h5")
 classnames = ['BG', 'mark']
 
-def get_inference_model():
+def get_inference_model(model_dir=".",
+                        model_name="alignment_30.h5"):
     ''' Loads weights and returns an inference model '''
+
+    model_path = os.path.join(model_dir, model_name)
     inference_config = mark_dataset.InferenceConfig()
     model = modellib.MaskRCNN(mode="inference", 
                               config=inference_config,
-                              model_dir=MODEL_DIR)
+                              model_dir=model_dir+'/logs')
     print("Loading weights from ", model_path)
     model.load_weights(model_path, by_name=True)
     return model

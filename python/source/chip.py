@@ -3,12 +3,33 @@ import position as pos
 import math
 import numpy as np
 import focus
+import const
 
 
 class Chip:
-    ''' Chip properties '''
+    ''' Default Chip properties '''
+    NUMBER_OF_APARTMENTS = 47
+    NUMBER_OF_STREETS = 128
+    APARTMENT_SPACING = 205.2
+    STREET_SPACING = 194.4
 
-    def __init__(self, corner_pl):
+    # Chip Dimentions from alignment mark to alignment mark
+    CHIP_WIDTH = 26000.0
+    CHIP_HEIGHT = 9500.0
+
+    NUMBER_OF_APTS_IN_FRAME_X = int(np.floor(const.FRAME_WIDTH / STREET_SPACING))
+    NUMBER_OF_APTS_IN_FRAME_Y = int(np.floor(const.FRAME_HEIGHT / APARTMENT_SPACING))
+
+    # This is the first imaging position relaitve to the first alignment mark
+    # FIRST_POSITION = (1165.4, 266.0)
+    FIRST_POSITION = ((CHIP_WIDTH - (NUMBER_OF_STREETS * STREET_SPACING)
+                      + (STREET_SPACING / 4),
+                      (CHIP_HEIGHT - (NUMBER_OF_APARTMENTS * APARTMENT_SPACING))
+                      + ((NUMBER_OF_APTS_IN_FRAME_Y / 2) * APARTMENT_SPACING)))
+
+
+
+    def initalize(self, corner_pl):
         ''' Set the Chip properties using the given infomation
 
         Args:
@@ -70,22 +91,22 @@ class Chip:
         del self.corner_poslist[min_y]
         self.corner_poslist.append(temp_pos)
 
-    def get_position_list(self, focused_pl, cam_frame_width=1210.0, cam_frame_height=990.0):
-        ''' Calculates the position list for imaging the particular chip
+    def get_position_list(self, focused_pl):
+        ''' Calculates the position list for imaging
 
         args:
             focused_pl: The position list of the focused interior points.
-            cam_frame_width: x distance between images (default 1210.0 for PVCAM)
-            cam_frame_height: y distance between images (default 990.0 for PVCAM)
             
         returns: PositionList()
         '''
         # get the focus model from the focused points
         focus_func = focus.predict_z_height(focused_pl)
+ 
+        x_steps = int(np.ceil(self.NUMBER_OF_STREETS/self.NUMBER_OF_APTS_IN_FRAME_X))
+        y_steps = int(np.ceil(self.NUMBER_OF_APARTMENTS/self.NUMBER_OF_APTS_IN_FRAME_Y))
+        x_step_size = self.NUMBER_OF_APTS_IN_FRAME_X * self.STREET_SPACING
+        y_step_size = self.NUMBER_OF_APTS_IN_FRAME_Y * self.APARTMENT_SPACING
 
-        x_steps = int(np.ceil(self.total_x/cam_frame_width))
-        y_steps = int(np.ceil(self.total_y/cam_frame_height))
-        
         # Get 2D rotation matix for origin point
         origin = np.matmul(np.linalg.inv(self.R), 
                             [self.corner_poslist[0].x, 
@@ -95,11 +116,18 @@ class Chip:
         x_list = range(x_steps)
         for y_ctr in range(y_steps):
             for x_ctr in x_list:
-                rotation = origin + [cam_frame_width/2 + cam_frame_width*x_ctr, 
-                                    (cam_frame_height/2 + cam_frame_height*y_ctr - 150)]
+                rotation = origin + [(self.CHIP_WIDTH - (self.FIRST_POSITION[0] + 
+                                      self.STREET_SPACING * self.NUMBER_OF_APTS_IN_FRAME_X *
+                                      (x_steps - 1)) + (self.STREET_SPACING / 4)) + 
+                                      x_step_size*x_ctr, 
+                                     self.FIRST_POSITION[1] + y_step_size*y_ctr]
                 posit = np.matmul(self.R, rotation)
+                name = ("_ST_"+ str((x_steps-1)*self.NUMBER_OF_APTS_IN_FRAME_X
+                                     - x_ctr*self.NUMBER_OF_APTS_IN_FRAME_X).zfill(3) + 
+                        "_APT_" + str(y_ctr*self.NUMBER_OF_APTS_IN_FRAME_Y).zfill(3) + "_")
                 s = pos.StagePosition(x=posit[0], y=posit[1], 
-                                    z=focus_func(posit[0], posit[1])[0])
+                                    z=focus_func(posit[0], posit[1])[0],
+                                    name=name)
                 poslist.append(s)
             # Each time though reverse the order to snake through chip
             x_list = x_list[::-1]
@@ -132,3 +160,26 @@ class Chip:
                 fp_positions.append(s)
             fp_x_list = fp_x_list[::-1]
         return fp_positions
+
+
+class ML_Chip(Chip):
+    ''' This class inherits from the main Chip class, it adjusts the 
+    constant values for the specific chip types
+    '''
+    NUMBER_OF_APARTMENTS = 47
+    NUMBER_OF_STREETS = 128
+    APARTMENT_SPACING = 205.2
+    STREET_SPACING = 194.4
+
+    # Chip Dimentions from alignment mark to alignment mark
+    CHIP_WIDTH = 26000.0
+    CHIP_HEIGHT = 9500.0
+
+
+class KL_Chip(Chip):
+    NUMBER_OF_APARTMENTS = 34
+    NUMBER_OF_STREETS = 128
+    APARTMENT_SPACING = 280.6
+    STREET_SPACING = 194.4
+    CHIP_WIDTH = 26000.0
+    CHIP_HEIGHT = 9500.0

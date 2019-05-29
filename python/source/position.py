@@ -13,6 +13,7 @@ import position as pos
 import chip
 import skimage.io 
 from const import *
+import scipy.misc
 
 class PositionList:
 
@@ -81,7 +82,7 @@ class PositionList:
             plt.xlabel('X')
             plt.ylabel('Y')
     
-    def image(self, mmc, save_dir, save_jpg=False):
+    def image(self, mmc, save_dir, naming_scheme, save_jpg=False):
         ''' Images the positions in the PositionList
 
         args: 
@@ -89,6 +90,7 @@ class PositionList:
             save_dir: Directory to save tiff files 
         '''
         # Make the directory to save to and change into it
+        orig_dir = os.getcwd()
         dir_name = save_dir+'\\'+time.strftime("%Y-%m-%d_%H_%M")
         os.makedirs(dir_name)
         os.chdir(dir_name)
@@ -101,13 +103,15 @@ class PositionList:
 
             # Get image and save 
             frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
-            tif.imwrite('img'+'_'+str(ctr)+'.tif', frame)
+            frame = np.flipud(frame)
+            tif.imwrite(naming_scheme + pos.name + time.strftime("%Y%m%d%H%M") + '.tif', frame)
             if save_jpg:
                 os.makedirs('jpg', exist_ok=True)
-                skimage.io.imsave('jpg/img'+'_'+str(ctr)+'.tif', frame)
+                scipy.misc.imsave('jpg/'+naming_scheme + pos.name + time.strftime("%Y%m%d%H%M") + '.jpg', frame)
             time.sleep(0.05)
         
         utils.close_cam(cam)
+        os.chdir(orig_dir)
     
     def save(self, filename, path):
         ''' Save PositionList() as a json file
@@ -183,12 +187,13 @@ class StagePosition:
         z: z position (optional)
         theta: theta position (optional)
     '''
-    def __init__(self, x=None, y=None, z=None, theta=None):
+    def __init__(self, x=None, y=None, z=None, theta=None, name=None):
         self.x = x
         self.y = y
         self.z = z
         self.theta = theta
         self.numAxes = 0
+        self.name = name
         for val in [x, y, z, theta]:
             if val is not None:
                 self.numAxes = self.numAxes + 1

@@ -150,9 +150,7 @@ def focus_from_image_stack(xy_points, mmc, delta_z=5, total_z=150):
 def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_range=35):
     ''' Gets a focused position list using a brute force method to find the 
     first focus point, then after that, used the last focused point as the 
-    center of the new, shorter focus range. This algorithm moves to the next point 
-    once it gets a focus prediction that is worse than the previous prediction, 
-    therefore can be inaccurate when using with values of delta_z smaller than ~7
+    center of the new, shorter focus range. 
 
     args: 
         xy_points: a PositionList() of the locations to 
@@ -182,6 +180,7 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
         preds.append(focus_model.score(frame))
     # find the index of the min focus prediction
     best_focus_index = np.argmin(preds)
+    
     # append to the PositionList 
     last_z = z[best_focus_index]
     sp = pos.StagePosition(x=xy_points[0].x, y=xy_points[0].y,
@@ -215,8 +214,8 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
             frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
             preds.append(focus_model.score(frame))
 
-            if j > 0:
-                if preds[j] > preds[j-1]:
+            if j > 1:
+                if (preds[j] > preds[j-1]) and (preds[j] > preds[j-2]):
                     # Focus got worse
                     break
         # find the index of the min focus prediction
