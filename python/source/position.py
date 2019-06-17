@@ -82,7 +82,7 @@ class PositionList:
             plt.xlabel('X')
             plt.ylabel('Y')
     
-    def image(self, mmc, save_dir, naming_scheme, save_jpg=False):
+    def image(self, mmc, save_dir, naming_scheme, save_jpg=False, rotation=0):
         ''' Images the positions in the PositionList
 
         args: 
@@ -91,7 +91,7 @@ class PositionList:
         '''
         # Make the directory to save to and change into it
         orig_dir = os.getcwd()
-        dir_name = save_dir+'\\'+time.strftime("%Y-%m-%d_%H_%M")
+        dir_name = save_dir+'\\'+naming_scheme+'_'+time.strftime("%Y-%m-%d_%H_%M")
         os.makedirs(dir_name)
         os.chdir(dir_name)
 
@@ -104,6 +104,13 @@ class PositionList:
             # Get image and save 
             frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
             frame = np.flipud(frame)
+            if rotation >= 90:
+                frame = np.rot90(frame)
+            if rotation >= 180:
+                frame = np.rot90(frame)
+            if rotation >= 270:
+                frame = np.rot90(frame)
+            
             tif.imwrite(naming_scheme + pos.name + time.strftime("%Y%m%d%H%M") + '.tif', frame)
             if save_jpg:
                 os.makedirs('jpg', exist_ok=True)

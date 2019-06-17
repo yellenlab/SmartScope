@@ -33,7 +33,7 @@ def opencv():
         print ("Camera started")
         while True:
             frame = cam.get_live_frame().reshape(cam.sensor_size[::-1])
-            frame = cv2.resize(frame,dim, interpolation = cv2.INTER_AREA)
+            frame = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA)
             cv2.imshow('Live Mode', frame)
     except KeyboardInterrupt:
         utils.close_cam(cam)

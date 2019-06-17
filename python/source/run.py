@@ -19,8 +19,8 @@ def auto_image_chip(chip,
                     focus_next_point_range=35,
                     number_of_focus_points_x=5,
                     number_of_focus_points_y=4,
-                    save_jpg=False
-                    ):
+                    save_jpg=False,
+                    image_rotation=0):
     ''' Aligns, focuses, and images given chip
 
     args:
@@ -57,7 +57,7 @@ def auto_image_chip(chip,
     alignment.move_to_center(mmc, center)
     p1 = pos.StagePosition(x=mmc.getXPosition(),
                            y=mmc.getYPosition())
-    pos.set_pos(mmc, x=(p1.x - CHIP_WIDTH),
+    pos.set_pos(mmc, x=(p1.x - chip.CHIP_WIDTH),
                      y=p1.y)
     pos.set_pos(mmc, z=focus.focus_point(mmc))
 
@@ -66,7 +66,7 @@ def auto_image_chip(chip,
     p2 = pos.StagePosition(x=mmc.getXPosition(),
                            y=mmc.getYPosition())
     pos.set_pos(mmc, x=(p2.x),
-                     y=(p2.y - CHIP_HEIGHT))
+                     y=(p2.y - chip.CHIP_HEIGHT))
     pos.set_pos(mmc, z=focus.focus_point(mmc))
 
     center, img, frame, r = alignment.find_alignment_mark(model)
@@ -105,7 +105,7 @@ def auto_image_chip(chip,
 def image_from_saved_positions(chip, chip_number, save_dir, mmc, 
                                realign=False, alignemnt_model_name="alignment_30.h5",
                                alignemnt_model_path='.', naming_scheme='BFF', 
-                               save_jpg=False):
+                               save_jpg=False, image_rotation=0):
     ''' Images a chip from previously saved positions
 
     args:
@@ -128,7 +128,7 @@ def image_from_saved_positions(chip, chip_number, save_dir, mmc,
         alignment.move_to_center(mmc, center)
         p1 = pos.StagePosition(x=mmc.getXPosition(),
                                y=mmc.getYPosition())
-        pos.set_pos(mmc, x=(p1.x - CHIP_WIDTH),
+        pos.set_pos(mmc, x=(p1.x - chip.CHIP_WIDTH),
                          y=p1.y)
         pos.set_pos(mmc, z=focus.focus_point(mmc))
 
@@ -137,7 +137,7 @@ def image_from_saved_positions(chip, chip_number, save_dir, mmc,
         p2 = pos.StagePosition(x=mmc.getXPosition(),
                                y=mmc.getYPosition())
         pos.set_pos(mmc, x=(p2.x),
-                         y=(p2.y - CHIP_HEIGHT))
+                         y=(p2.y - chip.CHIP_HEIGHT))
         pos.set_pos(mmc, z=focus.focus_point(mmc))
 
         center, img, frame, r = alignment.find_alignment_mark(model)
@@ -151,11 +151,11 @@ def image_from_saved_positions(chip, chip_number, save_dir, mmc,
         chip.initalize(corners)
         focused_pl = pos.load('\\'+chip_number + '_focused', save_dir)
         imaging_pl = chip.get_position_list(focused_pl)
-        imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=True)
+        imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=save_jpg)
 
     else:
         print ('Starting: Loading and Imaging')
         chip.initalize(pos.load('\\'+chip_number + '_corners', save_dir))
         focused_pl = pos.load('\\'+chip_number + '_focused', save_dir)
         imaging_pl = chip.get_position_list(focused_pl)
-        imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=True)
+        imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=save_jpg, rotation=image_rotation)
