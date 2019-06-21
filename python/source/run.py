@@ -20,7 +20,12 @@ def auto_image_chip(chip,
                     number_of_focus_points_x=5,
                     number_of_focus_points_y=4,
                     save_jpg=False,
-                    image_rotation=0):
+                    image_rotation=0,
+                    frame_width=1210.0,
+                    frame_height=990.0,
+                    camera_pixel_width=2688,
+                    camera_pixel_height=2200,
+                    exposure=1):
     ''' Aligns, focuses, and images given chip
 
     args:
@@ -95,7 +100,7 @@ def auto_image_chip(chip,
     print ('Time for focus:', focus_time-align_time)
     
     imaging_pl = chip.get_position_list(focused_pl)
-    imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=save_jpg)
+    imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=save_jpg, rotation=image_rotation)
 
     end = time.time()
     print ('Time for imaging:', end-focus_time)
@@ -105,7 +110,9 @@ def auto_image_chip(chip,
 def image_from_saved_positions(chip, chip_number, save_dir, mmc, 
                                realign=False, alignemnt_model_name="alignment_30.h5",
                                alignemnt_model_path='.', naming_scheme='BFF', 
-                               save_jpg=False, image_rotation=0):
+                               save_jpg=False, image_rotation=0,frame_width=1210.0,
+                               frame_height=990.0, camera_pixel_width=2688,
+                               camera_pixel_height=2200, exposure=1):
     ''' Images a chip from previously saved positions
 
     args:

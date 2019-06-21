@@ -1,3 +1,9 @@
+'''
+get rid of constants
+allow manual declaration of apts_in_frame
+
+'''
+
 
 import position as pos
 import math

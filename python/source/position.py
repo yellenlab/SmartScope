@@ -91,7 +91,7 @@ class PositionList:
         '''
         # Make the directory to save to and change into it
         orig_dir = os.getcwd()
-        dir_name = save_dir+'\\'+naming_scheme+'_'+time.strftime("%Y-%m-%d_%H_%M")
+        dir_name = save_dir+'\\'+naming_scheme
         os.makedirs(dir_name)
         os.chdir(dir_name)
 

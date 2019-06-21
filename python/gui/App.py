@@ -1,10 +1,7 @@
 ''' TODO:
 TEST - image rotation control
-- 4x and 20x objectives ???
 - image from folder button 
-- best way to store and change consts 
-- save default values for GUI
-
+- file system
 '''
 
 
@@ -18,11 +15,12 @@ import PIL.Image, PIL.ImageTk
 import tifffile as tif
 
 import os
+os.chdir(r'C:\Users\cell_ml\Downloads\SmartScope\python\gui')
 import sys
-sys.path.append('../source/maskrcnn')
-sys.path.append('../source/dataset')
-sys.path.append('../source/miq')
-sys.path.append('../source')
+sys.path.append('..\\source\\maskrcnn')
+sys.path.append('..\\source\\dataset')
+sys.path.append('..\\source\\miq')
+sys.path.append('..\\source')
 sys.path.append('C:\\Program Files\\Micro-Manager-2.0beta')
  
 import utils
@@ -115,32 +113,37 @@ class ExpParmas:
         self.advanced_visible = False
         self.live_class = None
  
-        self.general_options =  [Entry_Option(self.master, 'Chip', "ML Chip"),
-                            Entry_Option(self.master, 'Objective','10x'),
-                            Entry_Option(self.master, 'Drug',"Quizartinib"),
-                            Entry_Option(self.master, 'Cell',"MOLM13"),
-                            Entry_Option(self.master, 'Folder','.'),
+        self.general_options =  [Entry_Option(self.master, 'Chip', self.get_default(0)),
+                            Entry_Option(self.master, 'Objective', self.get_default(1)),
+                            Entry_Option(self.master, 'Drug',self.get_default(2)),
+                            Entry_Option(self.master, 'Cell',self.get_default(3)),
+                            Entry_Option(self.master, 'Folder',self.get_default(4)),
                             Entry_Option(self.master, 'Start Date',time.strftime("%Y_%m_%d")),
-                            Entry_Option(self.master, 'Drug Concentration',''),
-                            Entry_Option(self.master, 'Chip Index',''),
-                            Entry_Option(self.master, 'BFF Exposure (ms)',''),
-                            Entry_Option(self.master, 'DAP Exposure (ms)',''),
-                            Entry_Option(self.master, 'GFP Exposure (ms)',''),
-                            Entry_Option(self.master, 'TXR Exposure (ms)',''),
-                            Entry_Option(self.master, 'CY5 Exposure (ms)','')]
+                            Entry_Option(self.master, 'Drug Concentration',self.get_default(6)),
+                            Entry_Option(self.master, 'Chip Index',self.get_default(7)),
+                            Entry_Option(self.master, 'BFF Exposure (ms)',self.get_default(8)),
+                            Entry_Option(self.master, 'DAP Exposure (ms)',self.get_default(9)),
+                            Entry_Option(self.master, 'GFP Exposure (ms)',self.get_default(10)),
+                            Entry_Option(self.master, 'TXR Exposure (ms)',self.get_default(11)),
+                            Entry_Option(self.master, 'CY5 Exposure (ms)',self.get_default(12))]
  
         # TODO: Read defaults from conts.py
-        self.advanced_options = [Entry_Option(self.master, 'Focus Step Size (um)','5'),
-                            Entry_Option(self.master, 'Focus Inital Total Range (um)','150'),
-                            Entry_Option(self.master, 'Focus Next Point Range (um)','35'),
-                            Entry_Option(self.master, 'Focus Points X','5'),
-                            Entry_Option(self.master, 'Focus Points Y','4'),
-                            Entry_Option(self.master, 'Save JPGs (y/n)','n'),
-                            Entry_Option(self.master, 'Alignment Model Name','alignment_30.h5'),
-                            Entry_Option(self.master, 'Image Rotation (0, 90, 180, 270)','0'),
-                            Entry_Option(self.master, 'Apartments Per Image X',''),
-                            Entry_Option(self.master, 'Apartments Per Image Y',''),]
+        self.advanced_options = [Entry_Option(self.master, 'Focus Step Size (um)',self.get_default(13)),
+                            Entry_Option(self.master, 'Focus Inital Total Range (um)',self.get_default(14)),
+                            Entry_Option(self.master, 'Focus Next Point Range (um)',self.get_default(15)),
+                            Entry_Option(self.master, 'Focus Points X',self.get_default(16)),
+                            Entry_Option(self.master, 'Focus Points Y',self.get_default(17)),
+                            Entry_Option(self.master, 'Save JPGs (y/n)',self.get_default(18)),
+                            Entry_Option(self.master, 'Alignment Model Name',self.get_default(19)),
+                            Entry_Option(self.master, 'Image Rotation (0, 90, 180, 270)',self.get_default(20)),
+                            Entry_Option(self.master, 'Apartments Per Image X',self.get_default(21)),
+                            Entry_Option(self.master, 'Apartments Per Image Y',self.get_default(22)),
+                            Entry_Option(self.master, 'Frame Width',self.get_default(23)),
+                            Entry_Option(self.master, 'Frame Height',self.get_default(24)),
+                            Entry_Option(self.master, 'Camera Pixel Width',self.get_default(25)),
+                            Entry_Option(self.master, 'Camera Pixel Height',self.get_default(26))]
          
+        self.mmc = sc_utils.get_mmc()
         self.setup_window()
  
     def setup_window(self):
@@ -191,11 +194,16 @@ class ExpParmas:
         self.unit_drop.grid(row=6, column=4)
  
         # Checkboxes
-        self.bff_checkbox = tk.Checkbutton(self.master, text='BFF', onvalue=True, offvalue=False)
-        self.dap_checkbox = tk.Checkbutton(self.master, text='DAP', onvalue=True, offvalue=False)
-        self.gfp_checkbox = tk.Checkbutton(self.master, text='GFP', onvalue=True, offvalue=False)
-        self.txr_checkbox = tk.Checkbutton(self.master, text='TXR', onvalue=True, offvalue=False)
-        self.cy5_checkbox = tk.Checkbutton(self.master, text='CY5', onvalue=True, offvalue=False)
+        self.bff_check = tk.BooleanVar()
+        self.dap_check = tk.BooleanVar()
+        self.gfp_check = tk.BooleanVar()
+        self.txr_check = tk.BooleanVar()
+        self.cy5_check = tk.BooleanVar()
+        self.bff_checkbox = tk.Checkbutton(self.master, text='BFF', variable=self.bff_check, onvalue=True, offvalue=False)
+        self.dap_checkbox = tk.Checkbutton(self.master, text='DAP', variable=self.dap_check, onvalue=True, offvalue=False)
+        self.gfp_checkbox = tk.Checkbutton(self.master, text='GFP', variable=self.gfp_check, onvalue=True, offvalue=False)
+        self.txr_checkbox = tk.Checkbutton(self.master, text='TXR', variable=self.txr_check, onvalue=True, offvalue=False)
+        self.cy5_checkbox = tk.Checkbutton(self.master, text='CY5', variable=self.cy5_check, onvalue=True, offvalue=False)
         self.bff_checkbox.grid(row=8, column=4)
         self.dap_checkbox.grid(row=9, column=4)
         self.gfp_checkbox.grid(row=10, column=4)
@@ -203,9 +211,10 @@ class ExpParmas:
         self.cy5_checkbox.grid(row=12, column=4)
  
         # Create the Buttons
-        image_button = tk.Button(self.master, text='Image', command=self.image)
+        image_button = tk.Button(self.master, text='Start', command=self.image)
         browse_button = tk.Button(self.master, text='...', command=self.get_directory)
         advanced_button = tk.Button(self.master, text='Advanced Settings', command=self.advanced)
+        self.save_button = tk.Button(self.master, text='Save Current Values As Defaults', command=self.save_defaults)
         browse_button.grid(row=4, column=4)
         image_button.grid(row=len(self.general_labels)+1, column=4, columnspan=1, sticky='e')
         advanced_button.grid(row=len(self.general_labels)+1, column=3, columnspan=1)
@@ -221,6 +230,22 @@ class ExpParmas:
         folder = filedialog.askdirectory()
         self.set_entry_text(self.entries[0], folder)
         return
+    
+    def save_defaults(self):
+        # Save the current vals to default.txt
+        with open('default.txt', 'w') as file:
+            for i, val in enumerate(self.general_options):
+                if i < 4:
+                    print(f"{val.entry.get()}", file=file)
+            for val in self.entries:
+                print(f"{val.get()}", file=file)
+    
+    def get_default(self, index):
+        line = ''
+        with open('default.txt', 'r') as file:
+            for _ in range(index+1):
+                line = file.readline()
+        return line.strip()
  
     def set_entry_text(self, entry, text):
         entry.delete(0, tk.END)
@@ -239,9 +264,11 @@ class ExpParmas:
         if self.live_class is not None:
             self.live_class.delete()
         
-        chip_type        = self.general_options[0].entry.get()
-        objective   = self.general_options[1].entry.get()
-        folder              = self.entries[0].get()                      
+        chip_type           = self.general_options[0].entry.get()
+        objective           = self.general_options[1].entry.get()
+        drug                = self.general_options[2].entry.get()
+        folder              = self.entries[0].get() 
+        concentration       = self.entries[2].get()                    
         index               = self.entries[3].get()                            
         bff                 = int(self.entries[4].get() )                              
         dap                 = int(self.entries[5].get() )                      
@@ -258,17 +285,21 @@ class ExpParmas:
         image_rotation      = int(self.entries[16].get())
         apart_per_img_x     = self.entries[17].get()
         apart_per_img_y     = self.entries[18].get()
+        frame_width         = self.entries[19].get()
+        frame_height        = self.entries[20].get()
+        camera_pixel_width      = self.entries[21].get()
+        camera_pixel_height     = self.entries[22].get()
+
+
+        print (drug)
+        print (index)
+        print (concentration)
+        # print (folder + '/' + time.strftime("%Y%m%d") + '/'+ concentration + '-' + self.unit_string.get() + '-' + drug + '/' + 'Chip'+ index + '/t00')
+        save_dir = folder + '/' + time.strftime("%Y%m%d") + '/'+ concentration + '-' + self.unit_string.get() + '-' + drug + '/' + 'Chip'+ index + '/t00'
+        os.makedirs(save_dir, exist_ok=True)
 
         # Write info file
-        self.write_info_file()
-
-        # Load a Micro-Manager instance
-        mmc = sc_utils.get_mmc()
-        print ("Stage at: (", mmc.getXPosition(), 
-            ",", mmc.getYPosition(), ")")
-        
-        save_dir = folder + '\\' + index
-        os.makedirs(save_dir, exist_ok=True)
+        self.write_info_file(save_dir)
 
         if chip_type == 'ML Chip':
             curr_chip = chip.ML_Chip()
@@ -282,34 +313,34 @@ class ExpParmas:
 
         exp_names = ['BFF', 'DAP', 'GFP', 'TXR', 'CY5']
         exposures = []
-        if self.bff_checkbox.get():
+        if self.bff_check.get():
             exposures.append(int(bff))
         else:
             exposures.append(False)
-        if self.dap_checkbox.get():
+        if self.dap_check.get():
             exposures.append(int(dap))
         else:
             exposures.append(False)
-        if self.gfp_checkbox.get():
+        if self.gfp_check.get():
             exposures.append(int(gfp))
         else:
             exposures.append(False)
-        if self.txr_checkbox.get():
+        if self.txr_check.get():
             exposures.append(int(txr))
         else:
             exposures.append(False)
-        if self.cy5_checkbox.get():
+        if self.cy5_check.get():
             exposures.append(int(cy5))
         else:
             exposures.append(False)
 
         first_through = True
+        orginalx, orginaly, orginalz = pos.current(self.mmc)
         for i, exp in enumerate(exposures):
 
             if exp is not False and first_through:
-                EXPOSURE = exp
                 run.auto_image_chip(curr_chip,
-                                    mmc,
+                                    self.mmc,
                                     save_dir,
                                     index,
                                     alignemnt_model_name=alignment_model,
@@ -320,20 +351,30 @@ class ExpParmas:
                                     number_of_focus_points_x=focus_x,
                                     number_of_focus_points_y=focus_y,
                                     save_jpg=save_jpg,
-                                    image_rotation=image_rotation)
+                                    image_rotation=image_rotation,
+                                    frame_width=frame_width,
+                                    frame_height=frame_height,
+                                    camera_pixel_width=camera_pixel_width,
+                                    camera_pixel_height=camera_pixel_height,
+                                    exposure=exp)
                 first_through = False
 
             elif exp is not False:
-                EXPOSURE = exp
                 run.image_from_saved_positions(curr_chip, 
-                               index, 
-                               save_dir, 
-                               mmc, 
-                               realign=False, 
-                               alignemnt_model_name=alignment_model,
-                               naming_scheme=exp_names[i], 
-                               save_jpg=save_jpg,
-                               image_rotation=image_rotation)
+                                index, 
+                                save_dir, 
+                                self.mmc, 
+                                realign=False, 
+                                alignemnt_model_name=alignment_model,
+                                naming_scheme=exp_names[i], 
+                                save_jpg=save_jpg,
+                                image_rotation=image_rotation,
+                                frame_width=frame_width,
+                                frame_height=frame_height,
+                                camera_pixel_width=camera_pixel_width,
+                                camera_pixel_height=camera_pixel_height,
+                                exposure=exp)
+        pos.set_pos(self.mmc, x=orginalx, y=orginaly, z=orginalz)
         
  
     def advanced(self):
@@ -341,18 +382,18 @@ class ExpParmas:
             for i, label in enumerate(self.advanced_labels):
                 label.grid_forget()
                 self.entries[i+len(self.general_labels)-4].grid_forget()
-                 
+            self.save_button.grid_forget()     
         else:
             # Layout the advanced options 
             for i, label in enumerate(self.advanced_labels):
                 label.grid(row=i+len(self.general_labels)+2, column=0, columnspan=2)
                 self.entries[i+len(self.general_labels)-4].grid(row=i+len(self.general_labels)+2, 
                                                                     column=2, columnspan=2)
+            self.save_button.grid(row=i+len(self.general_labels)+3, column=2)
         self.advanced_visible = not self.advanced_visible
      
-    def write_info_file(self):
- 
-        with open(str(self.entries[0].get()) + '/info.txt', 'w') as file:
+    def write_info_file(self, save_dir):
+        with open(save_dir + '/info.txt', 'w+') as file:
             for i, val in enumerate(self.general_options):
                 if i < 4:
                     print(f"{val.label}: {val.entry.get()}", file=file)
