@@ -58,3 +58,6 @@ jupyter lab
 ```
 
 Open run.ipynb and run the cells
+
+
+*This open source software was developed with the generous support of a grant from the National Institutes of Health (1R21GM131279)*
