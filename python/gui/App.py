@@ -27,8 +27,7 @@ import utils
 import model as modellib
 import visualize
 import config
- 
-from const import *
+
 import mark_dataset
 import alignment
 import time
@@ -94,7 +93,7 @@ class MyVideoCapture:
         self.cam = sc_utils.start_cam()
 
     def get_frame(self):
-        frame = self.cam.get_frame(exp_time=EXPOSURE).reshape(self.cam.sensor_size[::-1])
+        frame = self.cam.get_frame(exp_time=1).reshape(self.cam.sensor_size[::-1])
         return frame
 
     def __del__(self):
@@ -290,12 +289,17 @@ class ExpParmas:
         camera_pixel_width      = self.entries[21].get()
         camera_pixel_height     = self.entries[22].get()
 
-
-        print (drug)
-        print (index)
-        print (concentration)
-        # print (folder + '/' + time.strftime("%Y%m%d") + '/'+ concentration + '-' + self.unit_string.get() + '-' + drug + '/' + 'Chip'+ index + '/t00')
-        save_dir = folder + '/' + time.strftime("%Y%m%d") + '/'+ concentration + '-' + self.unit_string.get() + '-' + drug + '/' + 'Chip'+ index + '/t00'
+        save_dir = (folder + '/' + time.strftime("%Y%m%d") + '/'+ concentration + 
+                    '-' + self.unit_string.get() + '-' + drug + '/' + 'Chip'+ index + '/')
+        # use the directories in save_dir to determine the number of times this 
+        # chip has been imaged
+        if not os.path.isdir(save_dir):
+            time_point = 't00'
+        else:
+            points = len(next(os.walk(os.getcwd()))[1])
+            time_point= "{0:0=2d}".format(points)
+        save_dir = save_dir + time_point
+        
         os.makedirs(save_dir, exist_ok=True)
 
         # Write info file
@@ -343,7 +347,7 @@ class ExpParmas:
                                     self.mmc,
                                     save_dir,
                                     index,
-                                    alignemnt_model_name=alignment_model,
+                                    alignment_model_name=alignment_model,
                                     naming_scheme=exp_names[i],
                                     focus_delta_z=focus_step,
                                     focus_total_z=focus_total_range,
@@ -365,7 +369,7 @@ class ExpParmas:
                                 save_dir, 
                                 self.mmc, 
                                 realign=False, 
-                                alignemnt_model_name=alignment_model,
+                                alignment_model_name=alignment_model,
                                 naming_scheme=exp_names[i], 
                                 save_jpg=save_jpg,
                                 image_rotation=image_rotation,
@@ -405,10 +409,7 @@ class ExpParmas:
             for val in self.advanced_options:
                 i = i+1
                 print(f"{val.label}: {self.entries[i-4].get()}", file=file)
-                
- 
- 
-     
+       
  
 def main():
     root = tk.Tk()

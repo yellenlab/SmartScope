@@ -12,7 +12,6 @@ import os
 import position as pos
 import chip
 import skimage.io 
-from const import *
 import scipy.misc
 
 class PositionList:
@@ -82,7 +81,7 @@ class PositionList:
             plt.xlabel('X')
             plt.ylabel('Y')
     
-    def image(self, mmc, save_dir, naming_scheme, save_jpg=False, rotation=0):
+    def image(self, mmc, save_dir, naming_scheme, save_jpg=False, rotation=0, exposure=1):
         ''' Images the positions in the PositionList
 
         args: 
@@ -102,7 +101,7 @@ class PositionList:
             set_pos(mmc, pos.x, pos.y, z=pos.z)
 
             # Get image and save 
-            frame = cam.get_frame(exp_time=EXPOSURE).reshape(cam.sensor_size[::-1])
+            frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
             frame = np.flipud(frame)
             if rotation >= 90:
                 frame = np.rot90(frame)

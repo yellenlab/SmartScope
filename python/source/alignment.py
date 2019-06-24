@@ -20,7 +20,6 @@ import config
 import mark_dataset
 import sc_utils
 import position as pos
-from const import *
 
 classnames = ['BG', 'mark']
 
@@ -61,15 +60,15 @@ def get_mark_center(rois):
     ], -1)
     return centroids
 
-def get_frame():
+def get_frame(exposure):
     cam = sc_utils.start_cam()
-    frame = cam.get_frame(exp_time=EXPOSURE)
+    frame = cam.get_frame(exp_time=exposure)
     sc_utils.close_cam(cam)
     print(frame.shape)
     return frame
 
-def find_alignment_mark(model):
-    orig_frame = get_frame()
+def find_alignment_mark(model, exposure):
+    orig_frame = get_frame(exposure)
     frame = convert_to_mrcnn_format(orig_frame)
     
     results = model.detect([frame], verbose=1)
@@ -79,12 +78,14 @@ def find_alignment_mark(model):
         return centroids, orig_frame, frame, r
     raise NoMarkError("No Alignment Mark in Frame")
 
-def move_to_center(mmc, center):
+def move_to_center(mmc, center, camera_pixel_width=2688, camera_pixel_height=2200, 
+                   frame_width=1210, frame_height=990):
     currx = mmc.getXPosition()
     curry = mmc.getYPosition()
 
-    x_change = (center[0]-(CAMERA_PIXELS[1]/2))*FRAME_TO_PIXEL_RATIO
-    y_change = (center[1]-(CAMERA_PIXELS[0]/2))*FRAME_TO_PIXEL_RATIO
+    frame_to_pixel_ratio = frame_width / camera_pixel_width
+    x_change = (center[0]-(camera_pixel_x/2))*frame_to_pixel_ratio
+    y_change = (center[1]-(camera_pixel_y/2))*frame_to_pixel_ratio
     new_x = currx-x_change
     new_y = curry-y_change
     pos.set_pos(mmc, x=new_x, y=new_y)

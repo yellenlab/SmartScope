@@ -2,7 +2,6 @@ import position as pos
 import math
 import numpy as np
 import focus
-from const import *
 import alignment
 import time
 import os
@@ -11,8 +10,8 @@ def auto_image_chip(chip,
                     mmc,
                     save_dir,
                     chip_number,
-                    alignemnt_model_name="alignment_30.h5",
-                    alignemnt_model_path='.',
+                    alignment_model_name="alignment_30.h5",
+                    alignment_model_path='.',
                     naming_scheme='BFF',
                     focus_delta_z=10,
                     focus_total_z=150,
@@ -55,27 +54,36 @@ def auto_image_chip(chip,
     start = time.time()
     print ("Starting: Alignment, Focus, and Imaging")
 
-    model = alignment.get_inference_model(model_dir=alignemnt_model_path,
-                                          model_name=alignemnt_model_name)
+    model = alignment.get_inference_model(model_dir=alignment_model_path,
+                                          model_name=alignment_model_name)
 
-    center, img, frame, r = alignment.find_alignment_mark(model)
-    alignment.move_to_center(mmc, center)
+    center, img, frame, r = alignment.find_alignment_mark(model, exposure)
+    alignment.move_to_center(mmc, center, frame_width=frame_width,
+                                        frame_height=frame_height,
+                                        camera_pixel_width=camera_pixel_width,
+                                        camera_pixel_height=camera_pixel_height)
     p1 = pos.StagePosition(x=mmc.getXPosition(),
                            y=mmc.getYPosition())
     pos.set_pos(mmc, x=(p1.x - chip.CHIP_WIDTH),
                      y=p1.y)
-    pos.set_pos(mmc, z=focus.focus_point(mmc))
+    pos.set_pos(mmc, z=focus.focus_point(mmc, exposure=exposure))
 
-    center, img, frame, r = alignment.find_alignment_mark(model)
-    alignment.move_to_center(mmc, center)
+    center, img, frame, r = alignment.find_alignment_mark(model, exposure)
+    alignment.move_to_center(mmc, center, frame_width=frame_width,
+                                        frame_height=frame_height,
+                                        camera_pixel_width=camera_pixel_width,
+                                        camera_pixel_height=camera_pixel_height)
     p2 = pos.StagePosition(x=mmc.getXPosition(),
                            y=mmc.getYPosition())
     pos.set_pos(mmc, x=(p2.x),
                      y=(p2.y - chip.CHIP_HEIGHT))
-    pos.set_pos(mmc, z=focus.focus_point(mmc))
+    pos.set_pos(mmc, z=focus.focus_point(mmc, exposure=exposure))
 
-    center, img, frame, r = alignment.find_alignment_mark(model)
-    alignment.move_to_center(mmc, center)
+    center, img, frame, r = alignment.find_alignment_mark(model, exposure)
+    alignment.move_to_center(mmc, center, frame_width=frame_width,
+                                        frame_height=frame_height,
+                                        camera_pixel_width=camera_pixel_width,
+                                        camera_pixel_height=camera_pixel_height)
     p3 = pos.StagePosition(x=mmc.getXPosition(),
                            y=mmc.getYPosition())
 
@@ -93,14 +101,15 @@ def auto_image_chip(chip,
     focused_pl = focus.focus_from_last_point(focus_pl, mmc,
                                              delta_z=focus_delta_z,
                                              total_z=focus_total_z,
-                                             next_point_range=focus_next_point_range)
+                                             next_point_range=focus_next_point_range,
+                                             exposure=exposure)
     focused_pl.save('_focused', save_dir + "/" + chip_number)
 
     focus_time = time.time()
     print ('Time for focus:', focus_time-align_time)
     
     imaging_pl = chip.get_position_list(focused_pl)
-    imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=save_jpg, rotation=image_rotation)
+    imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=save_jpg, rotation=image_rotation, exposure=exposure)
 
     end = time.time()
     print ('Time for imaging:', end-focus_time)
@@ -108,8 +117,8 @@ def auto_image_chip(chip,
 
 
 def image_from_saved_positions(chip, chip_number, save_dir, mmc, 
-                               realign=False, alignemnt_model_name="alignment_30.h5",
-                               alignemnt_model_path='.', naming_scheme='BFF', 
+                               realign=False, alignment_model_name="alignment_30.h5",
+                               alignment_model_path='.', naming_scheme='BFF', 
                                save_jpg=False, image_rotation=0,frame_width=1210.0,
                                frame_height=990.0, camera_pixel_width=2688,
                                camera_pixel_height=2200, exposure=1):
@@ -128,29 +137,38 @@ def image_from_saved_positions(chip, chip_number, save_dir, mmc,
     '''
     if realign:
         print ('Starting: Realignment and Imaging')
-        model = alignment.get_inference_model(model_dir=alignemnt_model_path,
-                                              model_name=alignemnt_model_name)
+        model = alignment.get_inference_model(model_dir=alignment_model_path,
+                                            model_name=alignment_model_name)
 
-        center, img, frame, r = alignment.find_alignment_mark(model)
-        alignment.move_to_center(mmc, center)
+        center, img, frame, r = alignment.find_alignment_mark(model, exposure)
+        alignment.move_to_center(mmc, center, frame_width=frame_width,
+                                                frame_height=frame_height,
+                                                camera_pixel_width=camera_pixel_width,
+                                                camera_pixel_height=camera_pixel_height)
         p1 = pos.StagePosition(x=mmc.getXPosition(),
-                               y=mmc.getYPosition())
+                            y=mmc.getYPosition())
         pos.set_pos(mmc, x=(p1.x - chip.CHIP_WIDTH),
-                         y=p1.y)
-        pos.set_pos(mmc, z=focus.focus_point(mmc))
+                        y=p1.y)
+        pos.set_pos(mmc, z=focus.focus_point(mmc,exposure=exposure))
 
-        center, img, frame, r = alignment.find_alignment_mark(model)
-        alignment.move_to_center(mmc, center)
+        center, img, frame, r = alignment.find_alignment_mark(model, exposure)
+        alignment.move_to_center(mmc, center, frame_width=frame_width,
+                                            frame_height=frame_height,
+                                            camera_pixel_width=camera_pixel_width,
+                                            camera_pixel_height=camera_pixel_height)
         p2 = pos.StagePosition(x=mmc.getXPosition(),
-                               y=mmc.getYPosition())
+                            y=mmc.getYPosition())
         pos.set_pos(mmc, x=(p2.x),
-                         y=(p2.y - chip.CHIP_HEIGHT))
-        pos.set_pos(mmc, z=focus.focus_point(mmc))
+                        y=(p2.y - chip.CHIP_HEIGHT))
+        pos.set_pos(mmc, z=focus.focus_point(mmc,exposure=exposure))
 
-        center, img, frame, r = alignment.find_alignment_mark(model)
-        alignment.move_to_center(mmc, center)
+        center, img, frame, r = alignment.find_alignment_mark(model, exposure)
+        alignment.move_to_center(mmc, center, frame_width=frame_width,
+                                            frame_height=frame_height,
+                                            camera_pixel_width=camera_pixel_width,
+                                            camera_pixel_height=camera_pixel_height)
         p3 = pos.StagePosition(x=mmc.getXPosition(),
-                               y=mmc.getYPosition())
+                            y=mmc.getYPosition())
         
         corners = pos.PositionList(positions=[p1,p2,p3])
         corners.save('_corners', save_dir + "/" + chip_number)
@@ -158,11 +176,11 @@ def image_from_saved_positions(chip, chip_number, save_dir, mmc,
         chip.initalize(corners)
         focused_pl = pos.load('\\'+chip_number + '_focused', save_dir)
         imaging_pl = chip.get_position_list(focused_pl)
-        imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=save_jpg)
+        imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=save_jpg, rotation=image_rotation, exposure=exposure)
 
     else:
         print ('Starting: Loading and Imaging')
         chip.initalize(pos.load('\\'+chip_number + '_corners', save_dir))
         focused_pl = pos.load('\\'+chip_number + '_focused', save_dir)
         imaging_pl = chip.get_position_list(focused_pl)
-        imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=save_jpg, rotation=image_rotation)
+        imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=save_jpg, rotation=image_rotation, exposure=exposure)

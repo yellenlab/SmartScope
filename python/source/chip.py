@@ -9,7 +9,6 @@ import position as pos
 import math
 import numpy as np
 import focus
-import const
 
 
 class Chip:
@@ -181,6 +180,8 @@ class ML_Chip(Chip):
     CHIP_WIDTH = 26000.0
     CHIP_HEIGHT = 9500.0
 
+    # FIRST_POSITION = (1165.4, 266.0)
+
 
 class KL_Chip(Chip):
     NUMBER_OF_APARTMENTS = 34
@@ -189,3 +190,5 @@ class KL_Chip(Chip):
     STREET_SPACING = 194.4
     CHIP_WIDTH = 26000.0
     CHIP_HEIGHT = 9500.0
+
+    # FIRST_POSITION = (1165.4, 266.0)
