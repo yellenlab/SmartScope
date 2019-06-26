@@ -22,15 +22,16 @@ class Chip:
     CHIP_WIDTH = 26000.0
     CHIP_HEIGHT = 9500.0
 
-    NUMBER_OF_APTS_IN_FRAME_X = int(np.floor(const.FRAME_WIDTH / STREET_SPACING))
-    NUMBER_OF_APTS_IN_FRAME_Y = int(np.floor(const.FRAME_HEIGHT / APARTMENT_SPACING))
+    NUMBER_OF_APTS_IN_FRAME_X = 5
+    NUMBER_OF_APTS_IN_FRAME_Y = 4
 
     # This is the first imaging position relaitve to the first alignment mark
-    # FIRST_POSITION = (1165.4, 266.0)
-    FIRST_POSITION = ((CHIP_WIDTH - (NUMBER_OF_STREETS * STREET_SPACING)
-                      + (STREET_SPACING / 4),
-                      (CHIP_HEIGHT - (NUMBER_OF_APARTMENTS * APARTMENT_SPACING))
-                      + ((NUMBER_OF_APTS_IN_FRAME_Y / 2) * APARTMENT_SPACING)))
+    FIRST_POSITION = (1165.4, 266.0)
+    FIRST_POSITION = (973.4, 266.0)
+    # FIRST_POSITION = ((CHIP_WIDTH - (NUMBER_OF_STREETS * STREET_SPACING)
+    #                   + (STREET_SPACING / 4),
+    #                   (CHIP_HEIGHT - (NUMBER_OF_APARTMENTS * APARTMENT_SPACING))
+    #                   + ((NUMBER_OF_APTS_IN_FRAME_Y / 2) * APARTMENT_SPACING)))
 
 
 

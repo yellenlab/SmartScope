@@ -64,7 +64,7 @@ def auto_image_chip(chip,
                                         camera_pixel_height=camera_pixel_height)
     p1 = pos.StagePosition(x=mmc.getXPosition(),
                            y=mmc.getYPosition())
-    pos.set_pos(mmc, x=(p1.x - chip.CHIP_WIDTH),
+    pos.set_pos(mmc, x=(p1.x - chip.CHIP_WIDTH + 150),
                      y=p1.y)
     pos.set_pos(mmc, z=focus.focus_point(mmc, exposure=exposure))
 
@@ -75,7 +75,7 @@ def auto_image_chip(chip,
                                         camera_pixel_height=camera_pixel_height)
     p2 = pos.StagePosition(x=mmc.getXPosition(),
                            y=mmc.getYPosition())
-    pos.set_pos(mmc, x=(p2.x),
+    pos.set_pos(mmc, x=(p2.x + 150),
                      y=(p2.y - chip.CHIP_HEIGHT))
     pos.set_pos(mmc, z=focus.focus_point(mmc, exposure=exposure))
 

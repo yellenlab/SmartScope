@@ -254,7 +254,7 @@ def predict_z_height(pos_list, xy_location=None):
         return f
     return f(xy_location[0], xy_location[1]), f
 
-def focus_point(mmc, delta_z=10, total_z=150, exposure=1):
+def focus_point(mmc, delta_z=10, total_z=250, exposure=1):
     # Get focus model
     focus_model = miq.get_classifier()
     
@@ -271,11 +271,17 @@ def focus_point(mmc, delta_z=10, total_z=150, exposure=1):
     for curr_z in z:
         pos.set_pos(mmc, z=curr_z)
         frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
+        # frame = (frame/4).astype('uint8')
         preds.append(focus_model.score(frame))
+        print (preds)
     # find the index of the min focus prediction
     best_focus_index = np.argmin(preds)
+    # best_focus_index = np.argmax(preds)
+    print('Best index:', best_focus_index)
     # append to the PositionList 
     last_z = z[best_focus_index]
+
+    print('Best index:', last_z)
 
     utils.close_cam(cam)
     return last_z

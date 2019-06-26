@@ -83,9 +83,9 @@ def move_to_center(mmc, center, camera_pixel_width=2688, camera_pixel_height=220
     currx = mmc.getXPosition()
     curry = mmc.getYPosition()
 
-    frame_to_pixel_ratio = frame_width / camera_pixel_width
-    x_change = (center[0]-(camera_pixel_x/2))*frame_to_pixel_ratio
-    y_change = (center[1]-(camera_pixel_y/2))*frame_to_pixel_ratio
+    frame_to_pixel_ratio = float(frame_width) / float(camera_pixel_width)
+    x_change = (center[0]-(float(camera_pixel_width)/2))*frame_to_pixel_ratio
+    y_change = (center[1]-(float(camera_pixel_height)/2))*frame_to_pixel_ratio
     new_x = currx-x_change
     new_y = curry-y_change
     pos.set_pos(mmc, x=new_x, y=new_y)

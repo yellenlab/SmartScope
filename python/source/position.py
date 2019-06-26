@@ -99,7 +99,7 @@ class PositionList:
         for ctr, pos in enumerate(self.positions):
             # set position and wait
             set_pos(mmc, pos.x, pos.y, z=pos.z)
-
+            
             # Get image and save 
             frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
             frame = np.flipud(frame)
@@ -114,7 +114,7 @@ class PositionList:
             if save_jpg:
                 os.makedirs('jpg', exist_ok=True)
                 scipy.misc.imsave('jpg/'+naming_scheme + pos.name + time.strftime("%Y%m%d%H%M") + '.jpg', frame)
-            time.sleep(0.05)
+            time.sleep(0.01)
         
         utils.close_cam(cam)
         os.chdir(orig_dir)
