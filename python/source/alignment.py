@@ -7,7 +7,6 @@ import skimage.io
 import matplotlib
 import matplotlib.pyplot as plt
 import time
-from numba import autojit
 
 sys.path.append('./maskrcnn')
 sys.path.append('./dataset')
@@ -36,23 +35,6 @@ def get_inference_model(model_dir=".",
     model.load_weights(model_path, by_name=True)
     return model
 
-@autojit
-def convert_to_mrcnn_format(image):
-    ''' Converts the output from the PVCAM frame 
-    into the format that the mrcnn model was trained on
-
-    args:
-        image: frame output from PVCAM
-    returns:
-        image in mrcnn fromat
-    '''
-    new_im = np.zeros((image.shape[0], image.shape[1], 3))
-    for ix, iy in np.ndindex(image.shape):
-        val = np.ceil(image[ix,iy] / 255) * 16
-        new_im[ix,iy] = [val,val,val]
-    new_im = new_im.astype('uint8')
-    return new_im
-
 def get_mark_center(rois):
     centroids = np.stack([
         rois[1] + ((rois[3] - rois[1]) / 2.0),
@@ -60,16 +42,9 @@ def get_mark_center(rois):
     ], -1)
     return centroids
 
-def get_frame(exposure):
-    cam = sc_utils.start_cam()
-    frame = cam.get_frame(exp_time=exposure)
-    sc_utils.close_cam(cam)
-    print(frame.shape)
-    return frame
-
 def find_alignment_mark(model, exposure):
-    orig_frame = get_frame(exposure)
-    frame = convert_to_mrcnn_format(orig_frame)
+    orig_frame = sc_utils.get_frame(exposure)
+    frame = sc_utils.convert_frame_to_mrcnn_format(orig_frame)
     
     results = model.detect([frame], verbose=1)
     r = results[0]

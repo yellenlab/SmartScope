@@ -54,7 +54,7 @@ def focus_from_last_point_bf(xy_points, mmc, delta_z=5, total_z=150, next_point_
     for curr_z in z:
         pos.set_pos(mmc, z=curr_z)
         frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
-        preds.append(focus_model.score(frame))
+        preds.append(focus_model.score(sc_utils.covert_frame_to_uint8(frame)))
     # find the index of the min focus prediction
     best_focus_index = np.argmin(preds)
     # append to the PositionList 
@@ -88,7 +88,7 @@ def focus_from_last_point_bf(xy_points, mmc, delta_z=5, total_z=150, next_point_
         for j, curr_z in enumerate(z_list):
             pos.set_pos(mmc, z=curr_z)
             frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
-            preds.append(focus_model.score(frame))
+            preds.append(focus_model.score(sc_utils.covert_frame_to_uint8(frame)))
         
         # find the index of the min focus prediction
         best_focus_index = np.argmin(preds)
@@ -133,7 +133,7 @@ def focus_from_image_stack(xy_points, mmc, delta_z=5, total_z=150, exposure=1):
             mmc.setPosition(curr_z)
             mmc.waitForSystem()
             frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
-            preds.append(focus_model.score(frame))
+            preds.append(focus_model.score(sc_utils.covert_frame_to_uint8(frame)))
         # find the index of the min focus prediction
         best_focus_index = np.argmin(preds)
         # append to the PositionList 
@@ -176,7 +176,7 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
     for curr_z in z:
         pos.set_pos(mmc, z=curr_z)
         frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
-        preds.append(focus_model.score(frame))
+        preds.append(focus_model.score(sc_utils.covert_frame_to_uint8(frame)))
     # find the index of the min focus prediction
     best_focus_index = np.argmin(preds)
     
@@ -211,7 +211,7 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
         for j, curr_z in enumerate(z_list):
             pos.set_pos(mmc, z=curr_z)
             frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
-            preds.append(focus_model.score(frame))
+            preds.append(focus_model.score(sc_utils.covert_frame_to_uint8(frame)))
 
             if j > 1:
                 if (preds[j] > preds[j-1]) and (preds[j] > preds[j-2]):
@@ -271,8 +271,7 @@ def focus_point(mmc, delta_z=10, total_z=250, exposure=1):
     for curr_z in z:
         pos.set_pos(mmc, z=curr_z)
         frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
-        # frame = (frame/4).astype('uint8')
-        preds.append(focus_model.score(frame))
+        preds.append(focus_model.score(sc_utils.covert_frame_to_uint8(frame)))
         print (preds)
     # find the index of the min focus prediction
     best_focus_index = np.argmin(preds)

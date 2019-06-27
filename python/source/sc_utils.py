@@ -8,6 +8,8 @@ try:
 except:
     print('WARNING: Micro-Manager is not installed')
 
+from numba import autojit
+
 def start_cam():
     ''' Initilizes the PVCAM
 
@@ -43,4 +45,31 @@ def get_mmc(cfg="../../config/scope_stage.cfg"):
     mmc.setFocusDevice('FocusDrive')
     return mmc
 
+def get_frame(exposure):
+    cam = sc_utils.start_cam()
+    frame = cam.get_frame(exp_time=exposure)
+    sc_utils.close_cam(cam)
+    print(frame.shape)
+    return frame
 
+@autojit
+def convert_frame_to_mrcnn_format(frame):
+    ''' Converts the output from the PVCAM frame 
+    into the format that the mrcnn model was trained on
+
+    args:
+        frame: frame output from PVCAM
+    returns:
+        frame in mrcnn fromat
+    '''
+    new_im = np.zeros((frame.shape[0], frame.shape[1], 3))
+    frame = covert_frame_to_uint8(frame)
+    for ix, iy in np.ndindex(frame.shape):
+        val = frame[ix,iy]
+        new_im[ix,iy] = [val,val,val]
+    new_im = new_im.astype('uint8')
+    return new_im
+
+def covert_frame_to_uint8(frame):
+    uint8_divider = np.max(frame) / 250
+    return np.ceil(frame/uint8_divider)
