@@ -9,7 +9,7 @@ except:
     print('WARNING: Micro-Manager is not installed')
 
 from numba import autojit
-
+import numpy as np
 def start_cam():
     ''' Initilizes the PVCAM
 
@@ -46,9 +46,9 @@ def get_mmc(cfg="../../config/scope_stage.cfg"):
     return mmc
 
 def get_frame(exposure):
-    cam = sc_utils.start_cam()
+    cam = start_cam()
     frame = cam.get_frame(exp_time=exposure)
-    sc_utils.close_cam(cam)
+    close_cam(cam)
     print(frame.shape)
     return frame
 
@@ -71,5 +71,10 @@ def convert_frame_to_mrcnn_format(frame):
     return new_im
 
 def covert_frame_to_uint8(frame):
+    print ('Max:', np.max(frame))
+    print ('Min:', np.min(frame))
     uint8_divider = np.max(frame) / 250
-    return np.ceil(frame/uint8_divider)
+    frame = np.ceil(frame/uint8_divider)
+    print ('Max:', np.max(frame))
+    print ('Min:', np.min(frame))
+    return np.ceil(frame/uint8_divider).astype('uint8')

@@ -53,8 +53,8 @@ class Live_Camera:
 
         # Camera Scale
         scale = 3
-        self.width = int(CAMERA_PIXELS[1] / scale)
-        self.height = int(CAMERA_PIXELS[0] / scale)
+        self.width = int(2688 / scale)
+        self.height = int(2200 / scale)
         self.dim = (self.width, self.height)
 
         self.vid = MyVideoCapture()
@@ -65,20 +65,26 @@ class Live_Camera:
         self.btn_snapshot=tk.Button(window, text="Snapshot", width=50, command=self.snapshot)
         self.btn_snapshot.pack(anchor=tk.CENTER, expand=True)
 
+        self.exp_entry = tk.Entry(window, textvariable=tk.StringVar(window, value="1"))
+        self.exp_entry.pack(anchor=tk.CENTER, expand=True)
+
         # After it is called once, the update method will be automatically called every delay milliseconds
         self.delay = 15
         self.update()
 
     def snapshot(self):
         frame = self.vid.get_frame()
-        frame = np.flipud(frame)
         tif.imwrite(time.strftime("%Y%m%d%H%M%S") + '.tif', frame)
 
     def update(self):
-        frame = self.vid.get_frame()
+        if self.exp_entry.get() is not '':
+            exp = int(self.exp_entry.get())
+        else:
+            exp = 1
+        frame = self.vid.get_frame(exp)
         frame = cv2.resize(frame, self.dim, interpolation=cv2.INTER_AREA)
-        img8 = (frame/4).astype('uint8')
-        frame = PIL.Image.fromarray(img8)
+        # img8 = (frame/4).astype('uint8')
+        frame = PIL.Image.fromarray(frame)
         self.photo = PIL.ImageTk.PhotoImage(image = frame)
         self.canvas.create_image(0, 0, image = self.photo, anchor = tk.NW)
         self.window.after(self.delay, self.update)
@@ -92,8 +98,10 @@ class MyVideoCapture:
     def __init__(self):
         self.cam = sc_utils.start_cam()
 
-    def get_frame(self):
-        frame = self.cam.get_frame(exp_time=1).reshape(self.cam.sensor_size[::-1])
+    def get_frame(self, exposure):
+        frame = self.cam.get_frame(exp_time=exposure).reshape(self.cam.sensor_size[::-1])
+        frame = np.flipud(frame)
+        frame = sc_utils.covert_frame_to_uint8(frame)
         return frame
 
     def __del__(self):
@@ -116,31 +124,32 @@ class ExpParmas:
                             Entry_Option(self.master, 'Objective', self.get_default(1)),
                             Entry_Option(self.master, 'Drug',self.get_default(2)),
                             Entry_Option(self.master, 'Cell',self.get_default(3)),
-                            Entry_Option(self.master, 'Folder',self.get_default(4)),
-                            Entry_Option(self.master, 'Start Date',time.strftime("%Y_%m_%d")),
-                            Entry_Option(self.master, 'Drug Concentration',self.get_default(6)),
-                            Entry_Option(self.master, 'Chip Index',self.get_default(7)),
-                            Entry_Option(self.master, 'BFF Exposure (ms)',self.get_default(8)),
-                            Entry_Option(self.master, 'DAP Exposure (ms)',self.get_default(9)),
-                            Entry_Option(self.master, 'GFP Exposure (ms)',self.get_default(10)),
-                            Entry_Option(self.master, 'TXR Exposure (ms)',self.get_default(11)),
-                            Entry_Option(self.master, 'CY5 Exposure (ms)',self.get_default(12))]
+                            Entry_Option(self.master, 'Origin',self.get_default(4)),
+                            Entry_Option(self.master, 'Folder',self.get_default(5)),
+                            Entry_Option(self.master, 'Start Date',self.get_default(6)),
+                            Entry_Option(self.master, 'Drug Concentration',self.get_default(7)),
+                            Entry_Option(self.master, 'Chip Index',self.get_default(8)),
+                            Entry_Option(self.master, 'BFF Exposure (ms)',self.get_default(9)),
+                            Entry_Option(self.master, 'DAP Exposure (ms)',self.get_default(10)),
+                            Entry_Option(self.master, 'GFP Exposure (ms)',self.get_default(11)),
+                            Entry_Option(self.master, 'TXR Exposure (ms)',self.get_default(12)),
+                            Entry_Option(self.master, 'CY5 Exposure (ms)',self.get_default(13))]
  
         # TODO: Read defaults from conts.py
-        self.advanced_options = [Entry_Option(self.master, 'Focus Step Size (um)',self.get_default(13)),
-                            Entry_Option(self.master, 'Focus Inital Total Range (um)',self.get_default(14)),
-                            Entry_Option(self.master, 'Focus Next Point Range (um)',self.get_default(15)),
-                            Entry_Option(self.master, 'Focus Points X',self.get_default(16)),
-                            Entry_Option(self.master, 'Focus Points Y',self.get_default(17)),
-                            Entry_Option(self.master, 'Save JPGs (y/n)',self.get_default(18)),
-                            Entry_Option(self.master, 'Alignment Model Name',self.get_default(19)),
-                            Entry_Option(self.master, 'Image Rotation (0, 90, 180, 270)',self.get_default(20)),
-                            Entry_Option(self.master, 'Apartments Per Image X',self.get_default(21)),
-                            Entry_Option(self.master, 'Apartments Per Image Y',self.get_default(22)),
-                            Entry_Option(self.master, 'Frame Width',self.get_default(23)),
-                            Entry_Option(self.master, 'Frame Height',self.get_default(24)),
-                            Entry_Option(self.master, 'Camera Pixel Width',self.get_default(25)),
-                            Entry_Option(self.master, 'Camera Pixel Height',self.get_default(26))]
+        self.advanced_options = [Entry_Option(self.master, 'Focus Step Size (um)',self.get_default(14)),
+                            Entry_Option(self.master, 'Focus Inital Total Range (um)',self.get_default(15)),
+                            Entry_Option(self.master, 'Focus Next Point Range (um)',self.get_default(16)),
+                            Entry_Option(self.master, 'Focus Points X',self.get_default(17)),
+                            Entry_Option(self.master, 'Focus Points Y',self.get_default(18)),
+                            Entry_Option(self.master, 'Save JPGs (y/n)',self.get_default(19)),
+                            Entry_Option(self.master, 'Alignment Model Name',self.get_default(20)),
+                            Entry_Option(self.master, 'Image Rotation (0, 90, 180, 270)',self.get_default(21)),
+                            Entry_Option(self.master, 'Apartments Per Image X',self.get_default(22)),
+                            Entry_Option(self.master, 'Apartments Per Image Y',self.get_default(23)),
+                            Entry_Option(self.master, 'Frame Width',self.get_default(24)),
+                            Entry_Option(self.master, 'Frame Height',self.get_default(25)),
+                            Entry_Option(self.master, 'Camera Pixel Width',self.get_default(26)),
+                            Entry_Option(self.master, 'Camera Pixel Height',self.get_default(27))]
          
         self.mmc = sc_utils.get_mmc()
         self.setup_window()
@@ -148,11 +157,12 @@ class ExpParmas:
     def setup_window(self):
         # Setup the possible choices
         self.chips = ["ML Chip", "KL Chip"]
-        self.objectives = ['4x', '10x', '20x']
+        self.objectives = ['16x']
         self.filters =['bff_checkbox', 'dap_checkbox', 'gfp_checkbox', 
                        'txr_checkbox', 'cy5_checkbox']
-        self.drugs = ["Quizartinib", "Imatinib", "DRUG A"]
-        self.cells = ["MOLM13", "PC9", "CELL A"]
+        self.drugs = ["Control", "Quizartinib", "Imatinib", "DRUG A", "Nilotinib", "Dasatinib", "Ponatinib"]
+        self.cells = ["MOLM13", "PC9", "CELL A", "K562", "K562S", "K562R", "OCI1", "MV411", "MOLM"]
+        self.origin = ["ATCC", "Sigma", "CCF (Duke)"]
         self.units = ["fM", "pM", "nM", "uM"]
  
         # self.drop_selections = [tk.StringVar(self.master, value=self.general_options['Chip']),
@@ -172,17 +182,19 @@ class ExpParmas:
         self.objective_drop = tk.OptionMenu(self.master, self.general_options[1].entry, *self.objectives)
         self.drug_drop = tk.OptionMenu(self.master, self.general_options[2].entry, *self.drugs)
         self.cell_drop = tk.OptionMenu(self.master, self.general_options[3].entry, *self.cells)
+        self.origin_drop = tk.OptionMenu(self.master, self.general_options[4].entry, *self.origin)
         self.chip_drop.grid(row=0, column=2, columnspan=2)
         self.objective_drop.grid(row=1, column=2, columnspan=2)
         self.drug_drop.grid(row=2, column=2, columnspan=2)
         self.cell_drop.grid(row=3, column=2, columnspan=2)
+        self.origin_drop.grid(row=4, column=2, columnspan=2)
  
         # Make entry boxes
         self.entries = []
         for i, entry in enumerate(self.general_options):
-            if i > 3:
+            if i > 4:
                 self.entries.append(self.make_entry(entry.default))
-                self.entries[i-4].grid(row=i, column=2, columnspan=2)
+                self.entries[i-5].grid(row=i, column=2, columnspan=2)
         for i, entry in enumerate(self.advanced_options):
             self.entries.append(self.make_entry(entry.default))
              
@@ -190,7 +202,7 @@ class ExpParmas:
         # Unit Dropdown
         self.unit_string = tk.StringVar(self.master, value='uM')
         self.unit_drop = tk.OptionMenu(self.master, self.unit_string, *self.units)
-        self.unit_drop.grid(row=6, column=4)
+        self.unit_drop.grid(row=7, column=4)
  
         # Checkboxes
         self.bff_check = tk.BooleanVar()
@@ -203,18 +215,18 @@ class ExpParmas:
         self.gfp_checkbox = tk.Checkbutton(self.master, text='GFP', variable=self.gfp_check, onvalue=True, offvalue=False)
         self.txr_checkbox = tk.Checkbutton(self.master, text='TXR', variable=self.txr_check, onvalue=True, offvalue=False)
         self.cy5_checkbox = tk.Checkbutton(self.master, text='CY5', variable=self.cy5_check, onvalue=True, offvalue=False)
-        self.bff_checkbox.grid(row=8, column=4)
-        self.dap_checkbox.grid(row=9, column=4)
-        self.gfp_checkbox.grid(row=10, column=4)
-        self.txr_checkbox.grid(row=11, column=4)
-        self.cy5_checkbox.grid(row=12, column=4)
+        self.bff_checkbox.grid(row=9, column=4)
+        self.dap_checkbox.grid(row=10, column=4)
+        self.gfp_checkbox.grid(row=11, column=4)
+        self.txr_checkbox.grid(row=12, column=4)
+        self.cy5_checkbox.grid(row=13, column=4)
  
         # Create the Buttons
         image_button = tk.Button(self.master, text='Start', command=self.image)
         browse_button = tk.Button(self.master, text='...', command=self.get_directory)
         advanced_button = tk.Button(self.master, text='Advanced Settings', command=self.advanced)
         self.save_button = tk.Button(self.master, text='Save Current Values As Defaults', command=self.save_defaults)
-        browse_button.grid(row=4, column=4)
+        browse_button.grid(row=5, column=4)
         image_button.grid(row=len(self.general_labels)+1, column=4, columnspan=1, sticky='e')
         advanced_button.grid(row=len(self.general_labels)+1, column=3, columnspan=1)
         live_camera = tk.Button(self.master, text='Live Camera', command=self.camera)
@@ -234,7 +246,7 @@ class ExpParmas:
         # Save the current vals to default.txt
         with open('default.txt', 'w') as file:
             for i, val in enumerate(self.general_options):
-                if i < 4:
+                if i < 5:
                     print(f"{val.entry.get()}", file=file)
             for val in self.entries:
                 print(f"{val.get()}", file=file)
@@ -266,7 +278,10 @@ class ExpParmas:
         chip_type           = self.general_options[0].entry.get()
         objective           = self.general_options[1].entry.get()
         drug                = self.general_options[2].entry.get()
-        folder              = self.entries[0].get() 
+        cell                = self.general_options[3].entry.get()
+        origin              = self.general_options[4].entry.get()
+        folder              = self.entries[0].get()
+        date                = self.entries[1].get()
         concentration       = self.entries[2].get()                    
         index               = self.entries[3].get()                            
         bff                 = int(self.entries[4].get() )                              
@@ -289,15 +304,15 @@ class ExpParmas:
         camera_pixel_width      = self.entries[21].get()
         camera_pixel_height     = self.entries[22].get()
 
-        save_dir = (folder + '/' + time.strftime("%Y%m%d") + '/'+ concentration + 
+        save_dir = (folder + '/' + date + '/'+ concentration + 
                     '-' + self.unit_string.get() + '-' + drug + '/' + 'Chip'+ index + '/')
         # use the directories in save_dir to determine the number of times this 
         # chip has been imaged
         if not os.path.isdir(save_dir):
             time_point = 't00'
         else:
-            points = len(next(os.walk(os.getcwd()))[1])
-            time_point= "{0:0=2d}".format(points)
+            points = len(next(os.walk(save_dir))[1])
+            time_point= "t{0:0=2d}".format(points)
         save_dir = save_dir + time_point
         
         os.makedirs(save_dir, exist_ok=True)
@@ -364,6 +379,7 @@ class ExpParmas:
                 first_through = False
 
             elif exp is not False:
+                input("Press Enter to continue...")
                 run.image_from_saved_positions(curr_chip, 
                                 index, 
                                 save_dir, 
@@ -391,7 +407,7 @@ class ExpParmas:
             # Layout the advanced options 
             for i, label in enumerate(self.advanced_labels):
                 label.grid(row=i+len(self.general_labels)+2, column=0, columnspan=2)
-                self.entries[i+len(self.general_labels)-4].grid(row=i+len(self.general_labels)+2, 
+                self.entries[i+len(self.general_labels)-5].grid(row=i+len(self.general_labels)+2, 
                                                                     column=2, columnspan=2)
             self.save_button.grid(row=i+len(self.general_labels)+3, column=2)
         self.advanced_visible = not self.advanced_visible
@@ -399,16 +415,16 @@ class ExpParmas:
     def write_info_file(self, save_dir):
         with open(save_dir + '/info.txt', 'w+') as file:
             for i, val in enumerate(self.general_options):
-                if i < 4:
+                if i < 5:
                     print(f"{val.label}: {val.entry.get()}", file=file)
                 else:
                     if val.label == 'Drug Concentration':
-                        print(f"{val.label}: {self.entries[i-4].get()} {self.unit_string}", file=file)
+                        print(f"{val.label}: {self.entries[i-5].get()} {self.unit_string.get()}", file=file)
                     else:
-                        print(f"{val.label}: {self.entries[i-4].get()}", file=file)
+                        print(f"{val.label}: {self.entries[i-5].get()}", file=file)
             for val in self.advanced_options:
                 i = i+1
-                print(f"{val.label}: {self.entries[i-4].get()}", file=file)
+                print(f"{val.label}: {self.entries[i-5].get()}", file=file)
        
  
 def main():

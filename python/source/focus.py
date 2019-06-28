@@ -4,7 +4,7 @@ sys.path.insert(0, 'miq')
 
 import miq
 import numpy as np
-import sc_utils as utils
+import sc_utils
 import position as pos
 import scipy.interpolate
 import time
@@ -48,7 +48,7 @@ def focus_from_last_point_bf(xy_points, mmc, delta_z=5, total_z=150, next_point_
     pos_list = pos.PositionList()
     cur_pos = mmc.getPosition()
     z = get_z_list(cur_pos, delta_z, total_z)
-    cam = utils.start_cam()
+    cam = sc_utils.start_cam()
     pos.set_pos(mmc, x=xy_points[0].x, y=xy_points[0].y)
     preds = []
     for curr_z in z:
@@ -98,7 +98,7 @@ def focus_from_last_point_bf(xy_points, mmc, delta_z=5, total_z=150, next_point_
                                 z=last_z)
         pos_list.append(sp)
     
-    utils.close_cam(cam)
+    sc_utils.close_cam(cam)
     total_time = time.time() - start_time
     # print ('Completed focus in', total_time, 'seconds')
     return pos_list
@@ -124,7 +124,7 @@ def focus_from_image_stack(xy_points, mmc, delta_z=5, total_z=150, exposure=1):
     # make z position array
     cur_pos = mmc.getPosition()
     z = get_z_list(cur_pos, delta_z, total_z)
-    cam = utils.start_cam()
+    cam = sc_utils.start_cam()
     for posit in xy_points:
         # Go to the x,y position 
         pos.set_pos(mmc, x=posit.x, y=posit.y)
@@ -141,7 +141,7 @@ def focus_from_image_stack(xy_points, mmc, delta_z=5, total_z=150, exposure=1):
                                z=z[best_focus_index])
         pos_list.append(sp)
     
-    utils.close_cam(cam)
+    sc_utils.close_cam(cam)
     total_time = time.time() - start_time
     print ('Completed focus in', total_time, 'seconds')
     return pos_list
@@ -170,7 +170,7 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
     pos_list = pos.PositionList()
     cur_pos = mmc.getPosition()
     z = get_z_list(cur_pos, delta_z, total_z)
-    cam = utils.start_cam()
+    cam = sc_utils.start_cam()
     pos.set_pos(mmc, x=xy_points[0].x, y=xy_points[0].y)
     preds = []
     for curr_z in z:
@@ -225,7 +225,7 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
                                 z=last_z)
         pos_list.append(sp)
     
-    utils.close_cam(cam)
+    sc_utils.close_cam(cam)
     total_time = time.time() - start_time
     # print ('Completed focus in', total_time, 'seconds')
     return pos_list
@@ -265,7 +265,7 @@ def focus_point(mmc, delta_z=10, total_z=250, exposure=1):
     num_steps = (start_pos-end_pos) / delta_z
     z = np.linspace(start_pos, end_pos, num_steps)
 
-    cam = utils.start_cam()
+    cam = sc_utils.start_cam()
 
     preds = []
     for curr_z in z:
@@ -282,5 +282,5 @@ def focus_point(mmc, delta_z=10, total_z=250, exposure=1):
 
     print('Best index:', last_z)
 
-    utils.close_cam(cam)
+    sc_utils.close_cam(cam)
     return last_z
