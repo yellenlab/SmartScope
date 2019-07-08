@@ -176,10 +176,10 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
     for curr_z in z:
         pos.set_pos(mmc, z=curr_z)
         frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
-        preds.append(focus_model.score(sc_utils.covert_frame_to_uint8(frame)))
+        preds.append(focus_model.score(bytescale(frame)))
     # find the index of the min focus prediction
     best_focus_index = np.argmin(preds)
-    
+    print (preds)
     # append to the PositionList 
     last_z = z[best_focus_index]
     sp = pos.StagePosition(x=xy_points[0].x, y=xy_points[0].y,
@@ -211,12 +211,14 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
         for j, curr_z in enumerate(z_list):
             pos.set_pos(mmc, z=curr_z)
             frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
-            preds.append(focus_model.score(sc_utils.covert_frame_to_uint8(frame)))
+            preds.append(focus_model.score(bytescale(frame)))
 
             if j > 1:
-                if (preds[j] > preds[j-1]) and (preds[j] > preds[j-2]):
+                if ((preds[j] > preds[j-1]) and (preds[j] > preds[j-2]) and 
+                    (np.abs(preds[j] - preds[j-1]) > 2 or np.abs(preds[j] - preds[j-2]) > 2)):
                     # Focus got worse
                     break
+        print (preds)
         # find the index of the min focus prediction
         best_focus_index = np.argmin(preds)
         # append to the PositionList 
@@ -271,7 +273,7 @@ def focus_point(mmc, delta_z=10, total_z=250, exposure=1):
     for curr_z in z:
         pos.set_pos(mmc, z=curr_z)
         frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
-        preds.append(focus_model.score(sc_utils.covert_frame_to_uint8(frame)))
+        preds.append(focus_model.score(bytescale(frame)))
         print (preds)
     # find the index of the min focus prediction
     best_focus_index = np.argmin(preds)
@@ -284,3 +286,31 @@ def focus_point(mmc, delta_z=10, total_z=250, exposure=1):
 
     sc_utils.close_cam(cam)
     return last_z
+
+def bytescale(data, current_min=0, current_max=None, high=65535, low=0):
+    ''' Scales the pixel values from any camera to 16-bit
+    args: 
+        data: frame array from camera (grayscale values)
+        current_min: the min value of the raw pixel values 
+        current_max: the max value of the raw pixel values. This 
+                will usually be 255 (8-bit) or 16383 (14-bit)
+        high: the high value to scale to (65535 for 16-bit)
+        low: the low value to scale to
+    
+    returns:
+        2D 16-bit depth array
+    '''
+    if current_min is None:
+        current_min = data.min()
+    if current_max is None:
+        current_max = data.max()
+
+    cscale = current_max - current_min
+    if cscale < 0:
+        raise ValueError("`current_max` should be larger than `current_min`.")
+    elif cscale == 0:
+        cscale = 1
+
+    scale = float(high - low) / cscale
+    bytedata = (data - current_min) * scale + low
+    return (bytedata.clip(low, high) + 0.5).astype('uint16')

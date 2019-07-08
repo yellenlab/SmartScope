@@ -358,7 +358,7 @@ class ExpParmas:
         for i, exp in enumerate(exposures):
 
             if exp is not False and first_through:
-                run.auto_image_chip(curr_chip,
+                run.auto_image_chip_focus_first(curr_chip,
                                     self.mmc,
                                     save_dir,
                                     index,
