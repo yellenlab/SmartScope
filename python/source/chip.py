@@ -24,7 +24,8 @@ class Chip:
 
     # This is the first imaging position relaitve to the first alignment mark
     # FIRST_POSITION = (1165.4, 266.0)
-    FIRST_POSITION = (1098.2, 266.0)
+    # FIRST_POSITION = (1098.2, 266.0)
+    FIRST_POSITION = (1066.2, 266.0)
     # FIRST_POSITION = ((CHIP_WIDTH - (NUMBER_OF_STREETS * STREET_SPACING)
     #                   + (STREET_SPACING / 4),
     #                   (CHIP_HEIGHT - (NUMBER_OF_APARTMENTS * APARTMENT_SPACING))
@@ -145,9 +146,9 @@ class Chip:
 
         returns: PositionList()
         '''
-        delta_x = self.total_x / fp_x
-        delta_y = self.total_y / fp_y
 
+        delta_x = (self.total_x - self.FIRST_POSITION[0]*2) / (fp_x-1)
+        delta_y = (self.total_y - self.FIRST_POSITION[1]*2) / (fp_y-1)
         origin = np.matmul(np.linalg.inv(self.R), 
                            [self.corner_poslist[0].x, 
                             self.corner_poslist[0].y])
@@ -156,8 +157,8 @@ class Chip:
         fp_x_list = range(fp_x)
         for y_ctr in range(fp_y):
             for x_ctr in fp_x_list:
-                rotation = origin + [delta_x/2 + delta_x*x_ctr, 
-                                    (delta_y/2 + delta_y*y_ctr)]
+                rotation = origin + [self.FIRST_POSITION[0] + delta_x*x_ctr, 
+                                    (self.FIRST_POSITION[1] + delta_y*y_ctr)]
                 fp = np.matmul(self.R, rotation)
                 s = pos.StagePosition(x=fp[0], y=fp[1])
                 fp_positions.append(s)

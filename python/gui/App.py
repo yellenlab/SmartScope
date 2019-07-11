@@ -101,7 +101,7 @@ class MyVideoCapture:
     def get_frame(self, exposure):
         frame = self.cam.get_frame(exp_time=exposure).reshape(self.cam.sensor_size[::-1])
         frame = np.flipud(frame)
-        frame = sc_utils.covert_frame_to_uint8(frame)
+        frame = sc_utils.bytescale(frame, high=255)
         return frame
 
     def __del__(self):

@@ -8,6 +8,14 @@
     - [General Imaging Parameters](#General-Imaging-Parameters)
     - [Advanced Parameters](#General-Imaging-Parameters)
 - [Adding Parameters](#Adding-Parameters)
+  - [Chip](#Chip)
+- [Changing Camera](#Changing-Camera)
+- [Training Models](#Training-Models)
+  - [Alignment Model](#Alignment-Model)
+  - [Focus Model](#Focus-Model)
+- [How It Works](#How-It-Works)
+  - [Overall Structure](#Overall-Structure)
+
     
 
 ## User Interface
@@ -50,6 +58,9 @@ class My_New_Chip(Chip):
     # the camera frame, and the spacing of the apartments
     NUMBER_OF_APTS_IN_FRAME_X = 5
     NUMBER_OF_APTS_IN_FRAME_Y = 4
+
+    # This is the first imaging position relaitve to the first alignment mark
+    FIRST_POSITION = (1066.2, 266.0)
 ```
 ```
 # Add to App.py
@@ -64,4 +75,54 @@ self.chips = ["ML Chip", "KL Chip", "<new chip name>"]
 elif chip_type == '<your new chip name>':
     curr_chip = chip.<your new chip class name>()
 ``` 
-### 
+## Changing  Camera
+All of the camera functions are located in the 'python/source/sc_utils.py' file. To change the camera used for imaging, repace the following lines at the top of the file to import your camera's python package. Then, the functions start_cam(), close_cam(), get_frame(), and get_live_frame() must be adjusted to work with the new camera.
+```
+# Change these lines to import different camera package
+# -----------------------------------------------------
+from pyvcam import pvc
+from pyvcam.camera import Camera
+
+def start_cam():
+    ''' Initilizes the PVCAM
+
+    returns: cam instance
+    '''
+    # YOUR CODE HERE
+
+def close_cam(cam):
+    ''' Closes the PVCAM instance
+    args:
+        - cam: camera instance
+    '''
+    # YOUR CODE HERE
+
+def get_frame(exposure):
+    ''' Gets a frame from the camera '''
+    cam = start_cam()
+    frame = cam.get_frame(exp_time=exposure) # YOUR CODE HERE
+    close_cam(cam)
+    return frame
+
+def get_live_frame(cam, exposure):
+    ''' Gets a frame from the passed camera instance. This is a faster 
+    way to get consecutive frames from a camera, used for focus and 
+    imaging.
+
+    args:
+        - cam: camera instance 
+        - exposure: exposure time
+
+    '''
+    return cam.get_frame(exp_time=exposure) # YOUR CODE HERE
+# -----------------------------------------------------
+```
+## Training Models
+### Alignment Model
+
+### Focus Model
+The focus model used in this repo is based on [Google's Microscope Image Focus Quality Classifier](https://github.com/google/microscopeimagequality), follow the instructions in the README on their github page to train a new model.
+NOTE: The microscopeimagequality repo must be used with python 2.
+
+## How It Works
+### Overall Structure

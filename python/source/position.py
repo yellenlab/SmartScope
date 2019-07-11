@@ -13,6 +13,8 @@ import position as pos
 import chip
 import skimage.io 
 import scipy.misc
+import sc_utils
+
 
 class PositionList:
 
@@ -101,7 +103,7 @@ class PositionList:
             set_pos(mmc, pos.x, pos.y, z=pos.z)
             
             # Get image and save 
-            frame = cam.get_frame(exp_time=exposure).reshape(cam.sensor_size[::-1])
+            frame = sc_utils.get_live_frame(cam, exposure)
             frame = np.flipud(frame)
             if rotation >= 90:
                 frame = np.rot90(frame)
@@ -110,10 +112,7 @@ class PositionList:
             if rotation >= 270:
                 frame = np.rot90(frame)
             
-            tif.imwrite(naming_scheme + pos.name + time.strftime("%Y%m%d%H%M") + '.tif', frame)
-            if save_jpg:
-                os.makedirs('jpg', exist_ok=True)
-                scipy.misc.imsave('jpg/'+naming_scheme + pos.name + time.strftime("%Y%m%d%H%M") + '.jpg', frame)
+            convert_and_save(frame, save_jpg, pos, naming_scheme, convert_to_16bit=True)
             time.sleep(0.01)
         
         utils.close_cam(cam)
@@ -134,7 +133,16 @@ class PositionList:
         # Write to file
         with open(path + filename + '.json', 'w') as outfile:
             json.dump(data, outfile)
-    
+
+def convert_and_save(frame, save_jpg, pos, naming_scheme, convert_to_16bit=True):
+    if convert_to_16bit:
+        frame = sc_utils.bytescale(frame)
+    tif.imwrite(naming_scheme + pos.name + time.strftime("%Y%m%d%H%M") + '.tif', frame)
+    if save_jpg:
+        os.makedirs('jpg', exist_ok=True)
+        scipy.misc.imsave('jpg/'+naming_scheme + pos.name + time.strftime("%Y%m%d%H%M") + '.jpg', frame)
+
+
 def load(filename, path):
     ''' Load PositionList() from json file 
     
