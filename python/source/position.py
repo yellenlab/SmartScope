@@ -115,6 +115,7 @@ class PositionList:
             convert_and_save(frame, save_jpg, pos, naming_scheme, convert_to_16bit=True)
             time.sleep(0.01)
         
+        print ('[SS INFO]: Total number of images saved:', len(self.positions))
         utils.close_cam(cam)
         os.chdir(orig_dir)
     

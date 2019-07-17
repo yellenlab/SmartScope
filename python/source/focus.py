@@ -122,6 +122,7 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
                 if ((preds[j] > preds[j-1]) and (preds[j] > preds[j-2]) and 
                     (np.abs(preds[j] - preds[j-1]) > 2 or np.abs(preds[j] - preds[j-2]) > 2)):
                     # Focus got worse
+                    
                     break
         # find the index of the min focus prediction
         best_focus_index = np.argmin(preds)
@@ -130,6 +131,14 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
         sp = pos.StagePosition(x=posit.x, y=posit.y,
                                 z=last_z)
         pos_list.append(sp)
+
+        if len(preds) < len(z_list):
+            print ('[FOCUS INFO]: (', posit.x, ',', posit.y, ') - Good focus')
+        elif preds[best_focus_index] > 5:
+            print ('[FOCUS INFO]: (', posit.x, ',', posit.y, ') - BAD FOCUS')
+        else:
+            print ('[FOCUS INFO]: (', posit.x, ',', posit.y, ') - OK focus')
+        
     
     sc_utils.close_cam(cam)
     return pos_list

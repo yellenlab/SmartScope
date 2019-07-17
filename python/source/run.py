@@ -52,7 +52,6 @@ def auto_image_chip(chip,
         save_jpg: Saves images as both tiff files and jpg files if True
     '''
     start = time.time()
-    print ("Starting: Alignment, Focus, and Imaging")
 
     model = alignment.get_inference_model(model_dir=alignment_model_path,
                                           model_name=alignment_model_name)
@@ -232,13 +231,13 @@ def auto_image_chip_focus_first(chip,
         save_jpg: Saves images as both tiff files and jpg files if True
     '''
     start = time.time()
-    print ("Starting: Alignment, Focus, and Imaging")
+    # print ("Starting: Alignment, Focus, and Imaging")
 
     model = alignment.get_inference_model(model_dir=alignment_model_path,
                                           model_name=alignment_model_name)
     p1 = pos.StagePosition(x=mmc.getXPosition(),
                            y=mmc.getYPosition())
-    
+    print ("[SS INFO]: Starting Focus")
     # Create a temparay chip for focusing 
     temp_corners = pos.PositionList(positions=[p1, 
                                     pos.StagePosition(x=p1.x - chip.CHIP_WIDTH, y=p1.y),
@@ -256,6 +255,8 @@ def auto_image_chip_focus_first(chip,
                                              exposure=exposure)
     focused_pl.save('_focused', save_dir + "/" + chip_number)
 
+    print ('[SS INFO]: Focused in '+ str(time.time() - start)+ 's')
+    print ("[SS INFO]: Starting Alignment")
     align_z1, _ = focus.predict_z_height(focused_pl, xy_location=(p1.x, p1.y))
     align_z2, _ = focus.predict_z_height(focused_pl, xy_location=(p1.x - chip.CHIP_WIDTH, p1.y))
     align_z3, _ = focus.predict_z_height(focused_pl, xy_location=(p1.x - chip.CHIP_WIDTH, p1.y - chip.CHIP_HEIGHT))
@@ -288,7 +289,8 @@ def auto_image_chip_focus_first(chip,
                            y=mmc.getYPosition())
     
     align_time = time.time()
-    print ('Time for alignment:', align_time-start)
+    print ('[SS INFO]: Time for focus and alignment:', align_time-start)
+    print ("[SS INFO]: Starting Imaging")
 
     # Create a Position List of the corners and save it
     corners = pos.PositionList(positions=[p1,p2,p3])
@@ -299,4 +301,4 @@ def auto_image_chip_focus_first(chip,
     imaging_pl.image(mmc, save_dir, naming_scheme, save_jpg=save_jpg, rotation=image_rotation, exposure=exposure)
 
     end = time.time()
-    print ('Total time:', end-start)
+    print ('[SS INFO]: Total time:', end-start)

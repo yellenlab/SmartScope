@@ -3,7 +3,7 @@ ML Chip
 Control
 MOLM13
 CCF (Duke)
-C:/Users/cell_ml/Desktop/10
+C:/Users/cell_ml/Desktop/20190628
 20190628
 1
 02
@@ -13,7 +13,7 @@ C:/Users/cell_ml/Desktop/10
 1
 1
 5
-150
+15
 45
 5
 4

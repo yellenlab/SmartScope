@@ -15,7 +15,7 @@ import PIL.Image, PIL.ImageTk
 import tifffile as tif
 
 import os
-os.chdir(r'C:\Users\cell_ml\Downloads\SmartScope\python\gui')
+os.chdir(r'C:\Users\cell_ml\Desktop\SmartScope\python\gui')
 import sys
 sys.path.append('..\\source\\maskrcnn')
 sys.path.append('..\\source\\dataset')
@@ -304,8 +304,11 @@ class ExpParmas:
         camera_pixel_width      = self.entries[21].get()
         camera_pixel_height     = self.entries[22].get()
 
-        save_dir = (folder + '/' + date + '/'+ concentration + 
-                    '-' + self.unit_string.get() + '-' + drug + '/' + 'Chip'+ index + '/')
+        if drug == 'Control':
+            save_dir = (folder + '/' + date + '/'+ drug + '/' + 'Chip'+ index + '/')
+        else:
+            save_dir = (folder + '/' + date + '/'+ concentration + 
+                        '-' + self.unit_string.get() + '-' + drug + '/' + 'Chip'+ index + '/')
         # use the directories in save_dir to determine the number of times this 
         # chip has been imaged
         if not os.path.isdir(save_dir):
