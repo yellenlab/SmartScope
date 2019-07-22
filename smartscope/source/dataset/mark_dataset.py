@@ -1,17 +1,23 @@
-import os
-import sys
-sys.path.append('../maskrcnn')
+"""
+SmartScope 
+MaskRCNN dataset classes.
 
-import maskrcnn.utils as utils
-import model as modellib
-import visualize
-from config import Config
+Duke University - 2019
+Licensed under the MIT License (see LICENSE for details)
+Written by Caleb Sanford
+"""
+
+import os
+
+from smartscope.source.masrcnn import utils
+from smartscope.source.masrcnn import model as modellib
+from smartscope.source.masrcnn import visualize
+from smartscope.source.masrcnn from config import Config
 
 class MarkConfig(Config):
     """Configuration for training on the cell dataset.
     Derives from the base Config class and overrides some values.
     """
-    # Give the configuration a recognizable name
     NAME = "mark"
 
     GPU_COUNT = 1
@@ -101,6 +107,7 @@ class MarkDataset(utils.Dataset):
             return info["path"]
         else:
             super(self.__class__, self).image_reference(image_id)
+
 
 class InferenceConfig(MarkConfig):
     # Set batch size to 1 since we'll be running inference on

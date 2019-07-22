@@ -1,9 +1,8 @@
 
-import sys
-sys.path.insert(0, 'miq')
-
-import miq
 import numpy as np
+
+from smartscope.source.miq import miq
+
 import sc_utils
 import position as pos
 import scipy.interpolate

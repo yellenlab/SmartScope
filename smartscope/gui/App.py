@@ -127,7 +127,7 @@ class ExpParmas:
  
         # TODO: Read defaults from conts.py
         self.advanced_options = [Entry_Option(self.master, 'Focus Step Size (um)',self.get_default(14)),
-                            Entry_Option(self.master, 'Focus Inital Total Range (um)',self.get_default(15)),
+                            Entry_Option(self.master, 'Focus Initial Total Range (um)',self.get_default(15)),
                             Entry_Option(self.master, 'Focus Next Point Range (um)',self.get_default(16)),
                             Entry_Option(self.master, 'Focus Points X',self.get_default(17)),
                             Entry_Option(self.master, 'Focus Points Y',self.get_default(18)),

@@ -1,15 +1,17 @@
-'''
-get rid of constants
-allow manual declaration of apts_in_frame
+"""
+SmartScope 
+Chip related functions and classes.
 
-'''
+Duke University - 2019
+Licensed under the MIT License (see LICENSE for details)
+Written by Caleb Sanford
+"""
 
 
-import position as pos
+from smartscope.source import position as pos
+from smartscope.source import focus
 import math
 import numpy as np
-import focus
-
 
 class Chip:
     ''' Default Chip properties '''

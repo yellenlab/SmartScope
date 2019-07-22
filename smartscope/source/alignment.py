@@ -7,10 +7,7 @@ Licensed under the MIT License (see LICENSE for details)
 Written by Caleb Sanford
 """
 
-
-
 import os
-import sys
 import random
 import math
 import numpy as np
@@ -19,17 +16,14 @@ import matplotlib
 import matplotlib.pyplot as plt
 import time
 
-sys.path.append('./maskrcnn')
-sys.path.append('./dataset')
+from smartscope.source.maskrcnn import utils
+from smartscope.source.maskrcnn import model as modellib
+from smartscope.source.maskrcnn import visualize
+from smartscope.source.maskrcnn import config
 
-import maskrcnn.utils as utils
-import model as modellib
-import visualize
-import config
-
-import mark_dataset
-import sc_utils
-import position as pos
+from smartscope.source.dataset import mark_dataset
+from smartscope.source import sc_utils
+from smartscope.source import position as pos
 
 classnames = ['BG', 'mark']
 
