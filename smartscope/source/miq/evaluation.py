@@ -10,7 +10,7 @@ import scipy.stats
 import tensorflow
 import tensorflow.contrib.slim
 import tensorflow.python.ops
-import miq
+from smartscope.source.miq import miq
 
 _IMAGE_ANNOTATION_MAGNIFICATION_PERCENT = 800
 CERTAINTY_NAMES = ['mean', 'max', 'aggregate', 'weighted']

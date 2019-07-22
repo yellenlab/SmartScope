@@ -9,10 +9,10 @@ Written by Caleb Sanford
 
 import os
 
-from smartscope.source.masrcnn import utils
-from smartscope.source.masrcnn import model as modellib
-from smartscope.source.masrcnn import visualize
-from smartscope.source.masrcnn from config import Config
+from smartscope.source.maskrcnn import utils
+from smartscope.source.maskrcnn import model as modellib
+from smartscope.source.maskrcnn import visualize
+from smartscope.source.maskrcnn.config import Config
 
 class MarkConfig(Config):
     """Configuration for training on the cell dataset.

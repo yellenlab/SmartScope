@@ -10,10 +10,8 @@ import pkg_resources
 import tensorflow
 import tensorflow.contrib.slim
 
-# import celldom
-# from celldom import io as celldom_io
-import constants
-import prediction
+from smartscope.source.miq import constants
+from smartscope.source.miq import prediction
 
 
 DEFAULT_MODEL_DIRECTORY = pkg_resources.resource_filename(__name__, "data")

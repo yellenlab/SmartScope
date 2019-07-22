@@ -14,20 +14,61 @@ import cv2
 import PIL.Image, PIL.ImageTk
 import tifffile as tif
 
+from imutils.video import VideoStream
+from pyzbar import pyzbar
+import argparse
+import datetime
+import imutils
+import time
+import cv2
+
 import os
-# os.chdir(r'C:\Users\cell_ml\Downloads\SmartScope\python\gui')
 import sys
-# sys.path.append('..\\source\\maskrcnn')
-# sys.path.append('..\\source\\dataset')
-# sys.path.append('..\\source\\miq')
-# sys.path.append('..\\source')
 sys.path.append('C:\\Program Files\\Micro-Manager-2.0beta')
 
-import smartscope.source.chip as chip
-import position as pos
-import focus
-import sc_utils
-import run
+from smartscope.source import chip
+from smartscope.source import position as pos
+from smartscope.source import focus
+from smartscope.source import sc_utils
+from smartscope.source import run
+
+
+vid_open = False
+    
+def get_first_val():
+    # vs = VideoStream(src=0).start()
+    vs = VideoStream(usePiCamera=False).start() #JM changing to false since we are not using Pi camera..
+    time.sleep(2.0)
+
+    barcodeData = ''
+    # loop over the frames from the video stream
+    while True:
+        # grab the frame from the threaded video stream and resize it to
+        # have a maximum width of 400 pixels
+        frame = vs.read()
+        frame = imutils.resize(frame, width=400)
+
+        # find the barcodes in the frame and decode each of the barcodes
+        barcodes = pyzbar.decode(frame)
+
+        # loop over the detected barcodes
+        if len(barcodes) > 0:
+            barcodeData = barcodes[0].data.decode("utf-8")
+            break
+
+        # show the output frame
+        cv2.imshow("Barcode Scanner (q to exit)", frame)
+        key = cv2.waitKey(1) & 0xFF
+    
+        # if the `q` key was pressed, break from the loop
+        if key == ord("q"):
+            break
+
+    cv2.destroyAllWindows()
+    vs.stop()
+
+    return str(barcodeData)
+
  
 class Entry_Option:
     def __init__(self, master, label, default):
@@ -48,7 +89,7 @@ class Live_Camera:
         self.height = int(2200 / scale)
         self.dim = (self.width, self.height)
 
-        self.vid = MyVideoCapture()
+        self.vid = VideoCapture()
         self.canvas = tk.Canvas(window, width = self.width, height = self.height)
         self.canvas.pack()
 
@@ -81,11 +122,13 @@ class Live_Camera:
         self.window.after(self.delay, self.update)
     
     def delete(self):
+        global vid_open
         self.vid.__del__()
         self.window.destroy()
+        vid_open = False
 
 
-class MyVideoCapture:
+class VideoCapture:
     def __init__(self):
         self.cam = sc_utils.start_cam()
 
@@ -216,16 +259,24 @@ class ExpParmas:
         browse_button = tk.Button(self.master, text='...', command=self.get_directory)
         advanced_button = tk.Button(self.master, text='Advanced Settings', command=self.advanced)
         self.save_button = tk.Button(self.master, text='Save Current Values As Defaults', command=self.save_defaults)
+        barcode_new_scan_button = tk.Button(self.master, text='Scan New Barcode', command=self.scan_barcode)
         browse_button.grid(row=5, column=4)
         image_button.grid(row=len(self.general_labels)+1, column=4, columnspan=1, sticky='e')
         advanced_button.grid(row=len(self.general_labels)+1, column=3, columnspan=1)
         live_camera = tk.Button(self.master, text='Live Camera', command=self.camera)
         live_camera.grid(row=len(self.general_labels)+1, column=2, columnspan=1)
- 
+        barcode_new_scan_button.grid(row=len(self.general_labels)+1, column=0, columnspan=1)
+    
+    def scan_barcode(self):
+        barval = get_first_val()
+    
     def camera(self):
-        live_cam = tk.Toplevel(self.master)
-        self.live_class = Live_Camera(live_cam)
-        self.live_class.window.mainloop()
+        global vid_open
+        if not vid_open:
+            vid_open = True
+            live_cam = tk.Toplevel(self.master)
+            self.live_class = Live_Camera(live_cam)
+            self.live_class.window.mainloop()
 
     def get_directory(self):
         folder = filedialog.askdirectory()
@@ -391,7 +442,7 @@ class ExpParmas:
         if self.advanced_visible:
             for i, label in enumerate(self.advanced_labels):
                 label.grid_forget()
-                self.entries[i+len(self.general_labels)-4].grid_forget()
+                self.entries[i+len(self.general_labels)-5].grid_forget()
             self.save_button.grid_forget()     
         else:
             # Layout the advanced options 

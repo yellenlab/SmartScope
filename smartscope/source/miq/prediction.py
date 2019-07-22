@@ -8,8 +8,8 @@ import sys
 import numpy
 import tensorflow
 
-import constants
-import evaluation
+from smartscope.source.miq import constants
+from smartscope.source.miq import evaluation
 
 # logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 

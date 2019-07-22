@@ -1,8 +1,8 @@
-import position as pos
+from smartscope.source import position as pos
 import math
 import numpy as np
-import focus
-import alignment
+from smartscope.source import focus
+from smartscope.source import alignment
 import time
 import os
  

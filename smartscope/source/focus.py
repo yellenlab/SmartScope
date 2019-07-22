@@ -3,8 +3,8 @@ import numpy as np
 
 from smartscope.source.miq import miq
 
-import sc_utils
-import position as pos
+from smartscope.source import sc_utils
+from smartscope.source import position as pos
 import scipy.interpolate
 import time
 
