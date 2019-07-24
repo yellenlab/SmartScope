@@ -15,8 +15,9 @@ import PIL.Image, PIL.ImageTk
 import tifffile as tif
 
 import os
-os.chdir(r'C:\Users\cell_ml\Desktop\SmartScope\python\gui')
 import sys
+app_path = sys.argv[0][:-7]
+os.chdir(app_path)
 sys.path.append('..\\source\\maskrcnn')
 sys.path.append('..\\source\\dataset')
 sys.path.append('..\\source\\miq')
@@ -58,23 +59,30 @@ class Live_Camera:
         self.dim = (self.width, self.height)
 
         self.vid = MyVideoCapture()
-        self.canvas = tk.Canvas(window, width = self.width, height = self.height)
+        self.canvas = tk.Canvas(self.window, width = self.width, height = self.height)
         self.canvas.pack()
 
         # Button that lets the user take a snapshot
-        self.btn_snapshot=tk.Button(window, text="Snapshot", width=50, command=self.snapshot)
+        self.btn_snapshot=tk.Button(self.window, text="Snapshot", width=50, command=self.snapshot)
         self.btn_snapshot.pack(anchor=tk.CENTER, expand=True)
 
-        self.exp_entry = tk.Entry(window, textvariable=tk.StringVar(window, value="1"))
-        self.exp_entry.pack(anchor=tk.CENTER, expand=True)
+        self.exp_entry = tk.Entry(self.window, textvariable=tk.StringVar(self.window, value="1"))
+        self.exp_entry.pack(side=tk.RIGHT, expand=True, anchor=tk.W)
+    
+        exp_label = tk.Label(self.window, text="Exposure")
+        exp_label.pack(side=tk.LEFT, expand=True, anchor=tk.E)
 
         # After it is called once, the update method will be automatically called every delay milliseconds
         self.delay = 15
         self.update()
 
     def snapshot(self):
-        frame = self.vid.get_frame()
-        tif.imwrite(time.strftime("%Y%m%d%H%M%S") + '.tif', frame)
+        if self.exp_entry.get() is not '':
+            frame = self.vid.get_frame(int(self.exp_entry.get()))
+        else:
+            frame = self.vid.get_frame(1)
+        filename = filedialog.asksaveasfilename(initialdir = "/",title = "Select file",filetypes = (("tiff files","*.tif"),("all files","*.*")))
+        tif.imwrite(filename + '.tif', frame)
 
     def update(self):
         if self.exp_entry.get() is not '':
