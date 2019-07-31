@@ -45,7 +45,7 @@ Download Machine Learing Models from [here](https://www.dropbox.com/sh/jipfb9xnw
 
 
 ## Connecting to Scope and Stage
-* Open Mirco-Manger application
+* Open Micro-Manger application
 * Click Devices/Hardware Configuration Wizard...
 * Create a new cfg file with hardware plugged in
 * Name that file scope_stage.cfg and place it in SmartScope\config
