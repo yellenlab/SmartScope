@@ -1,0 +1,19 @@
+Chip,ML
+Drug,Control
+Cell,MOLM13
+Origin,ATCC
+Start Date,20190802
+Concentration,10
+Chip Index,00
+BFF,test1
+DAP,1
+GFP,w
+TXR,1s
+CY5,1wer
+Step Size (um),5
+Initial Focus Range (um),15
+Focus Range (um),35
+Focus Points X,355
+Focus Points Y,4
+Focus Exposure,30
+Folder,

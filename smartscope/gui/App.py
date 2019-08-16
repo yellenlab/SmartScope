@@ -145,7 +145,65 @@ class VideoCapture:
             print ('could not close camera')
             pass
  
- 
+class Calibration:
+    def __init__(self, window):
+        self.window = window
+        self.window.title("Calibration")
+        self.window.protocol('WM_DELETE_WINDOW', self.delete)
+
+        # Camera Scale
+        scale = 3
+        self.width = int(2688 / scale)
+        self.height = int(2200 / scale)
+        self.dim = (self.width, self.height)
+
+        self.vid = VideoCapture()
+        self.canvas = tk.Canvas(window, width = self.width, height = self.height)
+        self.canvas.pack()
+
+        self.first_cross = True
+
+        # Button that lets the user take a snapshot
+        self.label = tk.Label(window, text="Align point on chip with cross, then press OK")
+        self.label.pack(anchor=tk.CENTER)
+        self.btn=tk.Button(window, text="OK", width=50, command=self.ok)
+        self.btn.pack(anchor=tk.CENTER, expand=True)
+
+        # After it is called once, the update method will be automatically called every delay milliseconds
+        self.delay = 15
+        self.update()
+
+    def ok(self):
+        if self.first_cross:
+            self.label['text'] = 'Align same point on chip with new cross, then press Finish'
+            self.btn['text'] = 'Finish'
+            self.first_cross = False
+            self.first_point = pos.current(mmc)
+        
+
+    def update(self):
+        exp = 1
+        frame = self.vid.get_frame(exp)
+        frame = cv2.resize(frame, self.dim, interpolation=cv2.INTER_AREA)
+        # img8 = (frame/4).astype('uint8')
+        frame = PIL.Image.fromarray(frame)
+        self.photo = PIL.ImageTk.PhotoImage(image = frame)
+        self.canvas.create_image(0, 0, image = self.photo, anchor = tk.NW)
+        if self.first_cross:
+            self.canvas.create_line((self.width/5)-70, (self.height/5), (self.width/5)+70, (self.height/5))
+            self.canvas.create_line((self.width/5), (self.height/5)-70, (self.width/5), (self.height/5)+70)
+        else:
+            self.canvas.create_line((self.width/5*4)-70, (self.height/5*4), (self.width/5*4)+70, (self.height/5*4))
+            self.canvas.create_line((self.width/5*4), (self.height/5*4)-70, (self.width/5*4), (self.height/5*4)+70)
+        self.window.after(self.delay, self.update)
+    
+    def delete(self):
+        global vid_open
+        self.vid.__del__()
+        self.window.destroy()
+        vid_open = False
+
+
 class ExpParmas:
     def __init__(self, master):
         self.master = master
@@ -395,7 +453,7 @@ class ExpParmas:
             exposures.append(False)
 
         first_through = True
-        orginalx, orginaly, orginalz = pos.current(self.mmc)
+        original_point = pos.current(self.mmc)
         for i, exp in enumerate(exposures):
 
             if exp is not False and first_through:
@@ -435,7 +493,7 @@ class ExpParmas:
                                 camera_pixel_width=camera_pixel_width,
                                 camera_pixel_height=camera_pixel_height,
                                 exposure=exp)
-        pos.set_pos(self.mmc, x=orginalx, y=orginaly, z=orginalz)
+        pos.set_pos(self.mmc, x=original_point.x, y=original_point.y, z=original_point.z)
         
  
     def advanced(self):

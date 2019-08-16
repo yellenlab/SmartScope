@@ -25,15 +25,24 @@
 #### General Imaging Parameters
 | Parameter     | Description   |
 | ------------- | ------------- |
-| Chip          | This is the type of chip to be imaged. Included chips are ML and KL style chips. To add a new chip, see the steps in [Adding Parameters](#Adding-Parameters).|
-| Objective | The magification of the objective used for imaging. |
+| Chip          | The type of chip to be imaged. Included chips are ML and KL style chips. To add a new chip, see the steps in [Adding Parameters](#Adding-Parameters).|
+| Objective | The magnification used for imaging. |
 | Drug | Drug used on cells (used in info.txt file and in directory naming) |
-| | | 
+| Focus Step Size (um) | Distance moved in the z-direction at each interval. | 
+| Initial Focus Range (um) | Total distance moved in the z-direction across all intervals to find focal plane of first point. |
+| Focus Range (um) | Total distance moved in the z-direction across all intervals to find focal plane of all focus points except the first point. |
+| Focus Grid | Number of points in the x and y directions for focal adjustment. |
+| Alignment Model Name | File name of the alignment machine learning model. |
+| Image Rotation (degrees) | Rotation of the captured images. |
+| Apartment per Image | Number of apartments to be captured in a single image, determines image center. |
+|||
+|||
+
 #### Advanced Parameters
 
 ## Adding Parameters
 ### Chip
- To add new chips for imaging, a new chip class must be added to chip.py. This can be done in the same way as the ML and KL chip classes in that file. Also the chip name must be added to teh self.chip list in App.py in order for it to appear in the GUI drop down menu. Lastly, in App.py ExpParams.image, an if statement must be added to set currchip to the new chip class. For Example: |
+ To add new chips for imaging, a new chip class must be added to chip.py. This can be done in the same way as the ML and KL chip classes in that file. Also the chip name must be added to the self.chip list in App.py in order for it to appear in the GUI drop down menu. Lastly, in App.py ExpParams.image, an if statement must be added to set currchip to the new chip class. For Example: |
 ```
 # Add a class with new values to chip.py 
 class My_New_Chip(Chip):
@@ -42,14 +51,14 @@ class My_New_Chip(Chip):
     '''
     # Number of apartment on chip in the y direction
     NUMBER_OF_APARTMENTS = 100.0
-    # Number of apartents on chip in the x direction
+    # Number of apartments on chip in the x direction
     NUMBER_OF_STREETS = 100.0
     # Distance in um between the center of two apartments in x direction
     APARTMENT_SPACING = 200.0
     # Distance in um between the center of two apartments in y direction
     STREET_SPACING = 200.0
 
-    # Chip Dimentions from alignment mark to alignment mark
+    # Chip Dimensions from alignment mark to alignment mark
     CHIP_WIDTH = 26000.0
     CHIP_HEIGHT = 9500.0
 
@@ -59,7 +68,7 @@ class My_New_Chip(Chip):
     NUMBER_OF_APTS_IN_FRAME_X = 5
     NUMBER_OF_APTS_IN_FRAME_Y = 4
 
-    # This is the first imaging position relaitve to the first alignment mark
+    # This is the first imaging position relative to the first alignment mark
     FIRST_POSITION = (1066.2, 266.0)
 ```
 ```
@@ -70,13 +79,13 @@ class My_New_Chip(Chip):
 self.chips = ["ML Chip", "KL Chip", "<new chip name>"]
 
 # ---------------------
-# Add this line in ExpParmas.image after the extisting chips 
+# Add this line in ExpParmas.image after the existing chips 
 # ---------------------
 elif chip_type == '<your new chip name>':
     curr_chip = chip.<your new chip class name>()
 ``` 
 ## Changing  Camera
-All of the camera functions are located in the 'python/source/sc_utils.py' file. To change the camera used for imaging, repace the following lines at the top of the file to import your camera's python package. Then, the functions start_cam(), close_cam(), get_frame(), and get_live_frame() must be adjusted to work with the new camera.
+All of the camera functions are located in the 'python/source/sc_utils.py' file. To change the camera used for imaging, replace the following lines at the top of the file to import your camera's python package. Then, the functions start_cam(), close_cam(), get_frame(), and get_live_frame() must be adjusted to work with the new camera.
 ```
 # Change these lines to import different camera package
 # -----------------------------------------------------
@@ -84,7 +93,7 @@ from pyvcam import pvc
 from pyvcam.camera import Camera
 
 def start_cam():
-    ''' Initilizes the PVCAM
+    ''' Initializes the PVCAM
 
     returns: cam instance
     '''

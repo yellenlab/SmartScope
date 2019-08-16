@@ -62,8 +62,8 @@ def auto_image_chip(chip,
                                         frame_height=frame_height,
                                         camera_pixel_width=camera_pixel_width,
                                         camera_pixel_height=camera_pixel_height)
-    p1 = pos.StagePosition(x=mmc.getXPosition(),
-                           y=mmc.getYPosition())
+    curx, cury, _ = pos.current(mmc)
+    p1 = pos.StagePosition(x=curx, y=cury)
     pos.set_pos(mmc, x=(p1.x - chip.CHIP_WIDTH + 150),
                      y=p1.y)
     pos.set_pos(mmc, z=focus.focus_point(mmc, exposure=exposure))
@@ -73,8 +73,8 @@ def auto_image_chip(chip,
                                         frame_height=frame_height,
                                         camera_pixel_width=camera_pixel_width,
                                         camera_pixel_height=camera_pixel_height)
-    p2 = pos.StagePosition(x=mmc.getXPosition(),
-                           y=mmc.getYPosition())
+    curx, cury, _ = pos.current(mmc)
+    p2 = pos.StagePosition(x=curx, y=cury)
     pos.set_pos(mmc, x=(p2.x + 150),
                      y=(p2.y - chip.CHIP_HEIGHT))
     pos.set_pos(mmc, z=focus.focus_point(mmc, exposure=exposure))
@@ -84,8 +84,8 @@ def auto_image_chip(chip,
                                         frame_height=frame_height,
                                         camera_pixel_width=camera_pixel_width,
                                         camera_pixel_height=camera_pixel_height)
-    p3 = pos.StagePosition(x=mmc.getXPosition(),
-                           y=mmc.getYPosition())
+    curx, cury, _ = pos.current(mmc)
+    p3 = pos.StagePosition(x=curx, y=cury)
 
     align_time = time.time()
     print ('Time for alignment:', align_time-start)
@@ -145,8 +145,8 @@ def image_from_saved_positions(chip, chip_number, save_dir, mmc,
                                                 frame_height=frame_height,
                                                 camera_pixel_width=camera_pixel_width,
                                                 camera_pixel_height=camera_pixel_height)
-        p1 = pos.StagePosition(x=mmc.getXPosition(),
-                            y=mmc.getYPosition())
+        curx, cury, _ = pos.current(mmc)
+        p1 = pos.StagePosition(x=curx, y=cury)
         pos.set_pos(mmc, x=(p1.x - chip.CHIP_WIDTH),
                         y=p1.y)
         pos.set_pos(mmc, z=focus.focus_point(mmc,exposure=exposure))
@@ -156,8 +156,8 @@ def image_from_saved_positions(chip, chip_number, save_dir, mmc,
                                             frame_height=frame_height,
                                             camera_pixel_width=camera_pixel_width,
                                             camera_pixel_height=camera_pixel_height)
-        p2 = pos.StagePosition(x=mmc.getXPosition(),
-                            y=mmc.getYPosition())
+        curx, cury, _ = pos.current(mmc)
+        p2 = pos.StagePosition(x=curx, y=cury)
         pos.set_pos(mmc, x=(p2.x),
                         y=(p2.y - chip.CHIP_HEIGHT))
         pos.set_pos(mmc, z=focus.focus_point(mmc,exposure=exposure))
@@ -167,8 +167,8 @@ def image_from_saved_positions(chip, chip_number, save_dir, mmc,
                                             frame_height=frame_height,
                                             camera_pixel_width=camera_pixel_width,
                                             camera_pixel_height=camera_pixel_height)
-        p3 = pos.StagePosition(x=mmc.getXPosition(),
-                            y=mmc.getYPosition())
+        curx, cury, _ = pos.current(mmc)
+        p3 = pos.StagePosition(x=curx, y=cury)
         
         corners = pos.PositionList(positions=[p1,p2,p3])
         corners.save('_corners', save_dir + "/" + chip_number)
@@ -236,8 +236,8 @@ def auto_image_chip_focus_first(chip,
 
     model = alignment.get_inference_model(model_dir=alignment_model_path,
                                           model_name=alignment_model_name)
-    p1 = pos.StagePosition(x=mmc.getXPosition(),
-                           y=mmc.getYPosition())
+    curx, cury, _ = pos.current(mmc)
+    p1 = pos.StagePosition(x=curx, y=cury)
     
     # Create a temporay chip for focusing 
     temp_corners = pos.PositionList(positions=[p1, 
@@ -268,24 +268,24 @@ def auto_image_chip_focus_first(chip,
                                         frame_height=frame_height,
                                         camera_pixel_width=camera_pixel_width,
                                         camera_pixel_height=camera_pixel_height)
-    p1 = pos.StagePosition(x=mmc.getXPosition(),
-                           y=mmc.getYPosition())
+    curx, cury, _ = pos.current(mmc)
+    p1 = pos.StagePosition(x=curx, y=cury)
     pos.set_pos(mmc, x=p1.x - chip.CHIP_WIDTH, y=p1.y, z=align_z2[0])
     center, img, frame, r = alignment.find_alignment_mark(model, exposure)
     alignment.move_to_center(mmc, center, frame_width=frame_width,
                                         frame_height=frame_height,
                                         camera_pixel_width=camera_pixel_width,
                                         camera_pixel_height=camera_pixel_height)
-    p2 = pos.StagePosition(x=mmc.getXPosition(),
-                           y=mmc.getYPosition())
+    curx, cury, _ = pos.current(mmc)
+    p2 = pos.StagePosition(x=curx, y=cury)
     pos.set_pos(mmc, x=p1.x - chip.CHIP_WIDTH, y=p1.y - chip.CHIP_HEIGHT, z=align_z3[0])
     center, img, frame, r = alignment.find_alignment_mark(model, exposure)
     alignment.move_to_center(mmc, center, frame_width=frame_width,
                                         frame_height=frame_height,
                                         camera_pixel_width=camera_pixel_width,
                                         camera_pixel_height=camera_pixel_height)
-    p3 = pos.StagePosition(x=mmc.getXPosition(),
-                           y=mmc.getYPosition())
+    curx, cury, _ = pos.current(mmc)
+    p3 = pos.StagePosition(x=curx, y=cury)
     
     align_time = time.time()
     print ('Time for alignment:', align_time-start)

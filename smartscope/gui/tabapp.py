@@ -1,0 +1,655 @@
+'''
+TODO:
+- Change pixel size calls to be dynamic
+'''
+
+
+
+
+from tkinter import ttk
+import tkinter as tk
+from tkinter import filedialog
+import csv
+import cv2
+import PIL.Image, PIL.ImageTk
+from imutils.video import VideoStream
+from pyzbar import pyzbar
+import time
+import imutils
+from collections import OrderedDict 
+import yaml
+import numpy as np
+
+import sys
+sys.path.append('C:\\Program Files\\Micro-Manager-2.0beta')
+
+from smartscope.source import position as pos
+from smartscope.source import sc_utils
+
+BARCODE_PATH = '../../config/barcode_data/'
+CONFIG_YAML_PATH = '../../config/experiment_config.yml'
+vid_open = False
+stage_to_pixel_ratio = 0
+first_position = [-1,-1]
+
+class Entry:
+    def __init__(self, frame, label_text, default, row, col=0):
+        self.label_text = label_text
+        self.default = default
+        self.frame = frame
+        self.entry = tk.StringVar(self.frame, value=self.default)
+        self.make_label(row, col)
+        self.make_entry(row, col+1)
+
+    def make_label(self, row, col):
+        self.label = tk.Label(self.frame, text=self.label_text)
+        self.label.grid(row=row, column=col)
+    
+    def make_entry(self, row, col):
+        tk.Entry(self.frame, textvariable=self.entry).grid(row=row, column=col, sticky='EW')
+
+
+class DropDown(Entry):
+    def __init__(self, frame, label_text, default, options, row, col=0):
+        self.label_text = label_text
+        self.default = default
+        self.frame = frame
+        self.entry = tk.StringVar(self.frame, value=self.default)
+        self.options = options
+        self.make_label(row, col)
+        self.make_dropdown(row, col+1)
+    
+    def make_dropdown(self, row, col):
+        tk.OptionMenu(self.frame, self.entry, *self.options).grid(row=row, column=col, sticky='EW')
+        
+
+class Main(tk.Frame):
+    def __init__(self, master):
+        self.master = master
+        tk.Frame.__init__(self, self.master)
+        self.master.title("Smart Scope")
+
+        ######################################################
+        # Layout the frames and notebooks
+        ######################################################
+        row_col_config(self.master, 4, 4)
+
+        self.Sidebar = tk.Frame(self.master)
+        self.Sidebar.grid(row = 0, column = 3, rowspan = 4, columnspan = 1, sticky = tk.W+tk.E+tk.N+tk.S)
+        row_col_config(self.Sidebar, 8, 1)
+        self.BarcodeFrame = tk.Frame(self.Sidebar, highlightbackground="black", highlightcolor="black", highlightthickness=1)
+        self.BarcodeFrame.grid(row=0, column=0, rowspan = 4, sticky = tk.W+tk.E+tk.N+tk.S)
+        row_col_config(self.BarcodeFrame, 4, 1)
+        self.Mainframe = tk.Frame(master)
+        self.Mainframe.grid(row = 0, column = 0, rowspan = 4, columnspan = 3, sticky = tk.W+tk.E+tk.N+tk.S)
+
+        self.nb = ttk.Notebook(self.Mainframe)
+
+        self.imaging_parameters = ttk.Frame(self.nb)
+        self.nb.add(self.imaging_parameters, text='Imaging Parameters')
+        row_col_config(self.imaging_parameters, 14, 4) 
+
+        self.system = ttk.Frame(self.nb)
+        self.nb.add(self.system, text='System Parameters')
+        self.nb.pack(expand=1, fill='both')
+        row_col_config(self.system, 14, 4)
+
+        ######################################################
+        # Layout the buttons, labels, and entries
+        ######################################################
+
+        # Sidebar 
+        tk.Button(self.Sidebar, text="Live Image", command=self.camera).grid(row=7, column = 0, ipadx=10, ipady=3, padx=3, pady=3)
+        tk.Label(self.BarcodeFrame, text="Barcode").grid(row=0, column=0)
+        self.barcode_number = tk.StringVar(self.BarcodeFrame, value='')
+        self.barcode_val = tk.Entry(self.BarcodeFrame, textvariable=self.barcode_number)
+        self.barcode_val.grid(row=1, column=0)
+        tk.Button(self.BarcodeFrame, text="Scan Barcode", command=self.scan_barcode).grid(row=3, column = 0, ipadx=10, ipady=3, padx=3, pady=3)
+        tk.Button(self.BarcodeFrame, text="Save", command=self.save_barcode).grid(row=4, column = 0, ipadx=18, ipady=3, padx=3, pady=3)
+        tk.Button(self.BarcodeFrame, text="Load", command=self.load_barcode).grid(row=5, column = 0, ipadx=18, ipady=3, padx=3, pady=3)
+        start = tk.Button(self.Sidebar, text="Start", font = ('Sans','10','bold'))
+        start.grid(row=8, column = 0, ipadx=23, ipady=3, padx=3, pady=3)
+
+        # Imaging
+        ## Experiment
+        self.config_yaml_data = read_yaml(CONFIG_YAML_PATH)
+
+        self.experiment_params = {
+            'Chip':1,
+            'Cycle Number':2,
+            'Drug':3,
+            'Cell':4,
+            'Origin':5,
+            'Start Date':6,
+            'Concentration':7,
+            'Chip Index':8
+        }
+        self.ExperimentFrame = tk.Frame(self.imaging_parameters, highlightbackground="black", highlightcolor="black", highlightthickness=1)
+        self.ExperimentFrame.grid(row=0, column=0, rowspan = 9, columnspan=2, sticky = tk.W+tk.E+tk.N+tk.S)
+        row_col_config(self.ExperimentFrame, 9, 2)
+        tk.Label(self.ExperimentFrame, text="Experiment").grid(row=0, column=0, columnspan=2)
+
+        for k, v in self.experiment_params.items():
+            if k == 'Chip':
+                self.experiment_params[k] = DropDown(self.ExperimentFrame, k, 
+                    get_default(k), ([val['name'] for val in self.config_yaml_data['chips']]), v)
+            elif k == 'Drug':
+                self.experiment_params[k] = DropDown(self.ExperimentFrame, k, 
+                    get_default(k), ([val for val in self.config_yaml_data['drugs']]), v)
+            elif k == 'Cell':
+                self.experiment_params[k] = DropDown(self.ExperimentFrame, k, 
+                    get_default(k), ([val for val in self.config_yaml_data['cells']]), v)
+            elif k == 'Origin':
+                self.experiment_params[k] = DropDown(self.ExperimentFrame, k, 
+                    get_default(k), ([val for val in self.config_yaml_data['origins']]), v)
+            else:
+                self.experiment_params[k] = Entry(self.ExperimentFrame, k, get_default(k), v)
+        
+        ## Exposure
+        self.exposure_params = {
+            'BFF':1,
+            'DAP':2,
+            'GFP':3,
+            'TXR':4,
+            'CY5':5
+        }
+        self.ExposureFrame = tk.Frame(self.imaging_parameters)
+        self.ExposureFrame.grid(row=9, column=0, rowspan = 4, columnspan=2 ,sticky = tk.W+tk.E+tk.N+tk.S)
+        row_col_config(self.ExposureFrame, 8, 3)
+        tk.Label(self.ExposureFrame, text="Exposure").grid(row=0, column=0,columnspan=2)
+
+        self.exposure_checkboxes = {
+            'BFF':tk.BooleanVar(),
+            'DAP':tk.BooleanVar(),
+            'GFP':tk.BooleanVar(),
+            'TXR':tk.BooleanVar(),
+            'CY5':tk.BooleanVar()
+        }
+
+        for i, (k, v) in enumerate(self.exposure_checkboxes.items()):
+            tk.Checkbutton(self.ExposureFrame, text=k, variable=v, 
+                           onvalue=True, offvalue=False).grid(row=i+1, column=2)
+        for k, v in self.exposure_params.items():
+            self.exposure_params[k] = Entry(self.ExposureFrame, k, get_default(k), v)
+        
+        ## Focus 
+        self.focus_params = {
+            'Step Size (um)':1,
+            'Initial Focus Range (um)':2,
+            'Focus Range (um)':3,
+            'Focus Points X':4,
+            'Focus Points Y':5,
+            'Focus Exposure':6
+        }
+        self.FocusFrame = tk.Frame(self.imaging_parameters)
+        self.FocusFrame.grid(row=0, column=2, rowspan = 6, columnspan=2 ,sticky = tk.W+tk.E+tk.N+tk.S)
+        row_col_config(self.FocusFrame, 6, 2)
+        tk.Label(self.FocusFrame, text="Focus").grid(row=0, column=0, columnspan=4)
+        for k, v in self.focus_params.items():
+            self.focus_params[k] = Entry(self.FocusFrame, k, get_default(k), v)
+
+        # Saving 
+        self.saving_params= {
+            'Folder':1,
+            'Output Image Pixel Width':2,
+            'Output Image Pixel Height':3
+        }
+        self.SaveFrame = tk.Frame(self.imaging_parameters,highlightbackground="black", highlightcolor="black", highlightthickness=1)
+        self.SaveFrame.grid(row=9, column=2, rowspan = 6, columnspan=2 ,sticky = tk.W+tk.E+tk.N+tk.S)
+        row_col_config(self.SaveFrame, 4, 3)
+        tk.Label(self.SaveFrame, text="Saving").grid(row=0, column=0, columnspan=4)
+        for k, v in self.saving_params.items():
+            self.saving_params[k]= Entry(self.SaveFrame, k, get_default(k), v)
+        tk.Button(self.SaveFrame, text='...', command=lambda: self.get_directory(self.saving_params['Folder'])).grid(row=1, column=2)
+        
+        ## System Tab Layout
+        # General
+        self.system_params = {
+            'Alignment Model':1,
+            'Focus Model':2,
+            'Objective':3,
+            'Apartments in Image X':4,
+            'Apartments in Image Y':5,
+            'Image Rotation (degrees)':6, 
+        }
+        self.SystemFrame = tk.Frame(self.system,highlightbackground="black", highlightcolor="black", highlightthickness=1)
+        self.SystemFrame.grid(row=0, column=0, rowspan = 14, columnspan=2 ,sticky = tk.W+tk.E+tk.N+tk.S)
+        row_col_config(self.SystemFrame, 7, 3)
+        tk.Label(self.SystemFrame, text="General").grid(row=0, column=0, columnspan=4)
+        for k, v in self.system_params.items():
+            if k == 'Image Rotation (degrees)':
+                self.system_params[k] = DropDown(self.ExperimentFrame, k, 
+                    get_default(k), ['0','90','180','270'], v)
+            else:
+                self.system_params[k] = Entry(self.SystemFrame, k, get_default(k), v)
+        tk.Button(self.SystemFrame, text='...', command=lambda: self.get_filename(self.system_params['Alignment Model'])).grid(row=1, column=2)
+        tk.Button(self.SystemFrame, text='...', command=lambda: self.get_filename(self.system_params['Focus Model'])).grid(row=2, column=2)
+
+        # Calibration
+        self.calibration_params = {
+            'Frame to Pixel Ratio':2,
+            'First Position':5,
+        }
+        self.CalibrationFrame = tk.Frame(self.system)
+        self.CalibrationFrame.grid(row=0, column=2, rowspan = 14, columnspan=2 ,sticky = tk.W+tk.E+tk.N+tk.S)
+        row_col_config(self.CalibrationFrame, 6, 3)
+        tk.Label(self.CalibrationFrame, text="Calibration").grid(row=0, column=0, columnspan=4)
+        
+        tk.Button(self.CalibrationFrame, text='Calibrate Stage/Pixel Ratio', command=self.ratio_calibrate).grid()
+        try:
+            self.calibration_params['Frame to Pixel Ratio'] = Entry(self.CalibrationFrame, 'Calibrated Stage to Pixel Ratio:', self.stage_to_pixel_ratio, 2)
+        except:
+            self.calibration_params['Frame to Pixel Ratio'] = Entry(self.CalibrationFrame, 'Calibrated Stage to Pixel Ratio:', 'NOT CALIBRATED', 2)
+        tk.Label(self.CalibrationFrame, textvariable=self.calibration_params['Frame to Pixel Ratio']).grid()
+        
+        tk.Button(self.CalibrationFrame, text='Calibrate First Postion', command=self.first_point_calibration).grid()
+        try:
+            self.calibration_params['First Position'] = Entry(self.CalibrationFrame, 'Calibrated First Postion:', self.first_position, 5)
+        except:
+            self.calibration_params['First Position'] = Entry(self.CalibrationFrame, 'Calibrated First Postion:', 'NOT CALIBRATED', 5)
+        tk.Label(self.CalibrationFrame, textvariable=self.calibration_params['First Position']).grid()
+
+        ######################################################
+        # Get Stage Controller
+        ######################################################
+        self.mmc = sc_utils.get_stage_controller()
+
+    def camera(self):
+        global vid_open
+        if not vid_open:
+            vid_open = True
+            live_cam = tk.Toplevel(self.master)
+            live_class = Live_Camera(live_cam)
+            live_class.window.mainloop()
+
+    def first_point_calibration(self):
+        if self.calibration_params['Frame to Pixel Ratio'].entry.get() == 'NOT CALIBRATED':
+            sc_utils.print_error('Must calibrate the Stage to Pixel Ratio first')
+            return
+        global vid_open
+        vid_open = True
+        live_cam = tk.Toplevel(self.master)
+        live_class = First_Point_Calibration(live_cam, self.mmc, self.experiment_params['Chip'], self.calibration_params['First Position'], float(self.calibration_params['Frame to Pixel Ratio'].entry.get()))
+        live_class.window.mainloop()
+
+    def ratio_calibrate(self):
+        global vid_open
+        vid_open = True
+        live_cam = tk.Toplevel(self.master)
+        live_class = Ratio_Calibration(live_cam, self.mmc, self.calibration_params['Frame to Pixel Ratio'])
+        live_class.window.update_idletasks()
+        live_class.window.update()
+        
+    def get_directory(self, entry_field):
+        folder = filedialog.askdirectory()
+        entry_field.entry.set(folder)
+
+    def get_filename(self, entry_field):
+        file = filedialog.askopenfilename(title='Choose a file')
+        entry_field.entry.set(file)
+
+    def scan_barcode(self):
+        barval = get_first_val()
+        self.barcode_number.set(barval)
+    
+    def save_barcode(self):
+        with open(BARCODE_PATH + str(self.barcode_number.get())+'.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',')
+            for k, v in self.get_parameter_dictionary().items():
+                writer.writerow([k, v.entry.get()])
+        sc_utils.print_info('Saved Barcode data to' + BARCODE_PATH + str(self.barcode_number.get())+'.csv')
+
+    def get_parameter_dictionary(self):
+        return {**self.experiment_params,
+                **self.exposure_params,
+                **self.focus_params, 
+                **self.saving_params,
+                **self.system_params,
+                **self.calibration_params}
+
+    def load_barcode(self):
+        # Load all of the values from the saved barcode 
+        csvfile = csv.reader(open(BARCODE_PATH + str(self.barcode_number.get())+'.csv', 'r'), delimiter=",")
+        for row in csvfile:
+            params = self.get_parameter_dictionary()
+            for k, v in params.items():
+                if k == row[0]:
+                    params[k].entry.set(row[1])
+            if 'Stage to Pixel Ratio' == row[0]:
+                self.stage_to_pixel_ratio = float(row[1])
+        sc_utils.print_info('Loaded Barcode data from'+BARCODE_PATH + str(self.barcode_number.get())+'.csv')
+    
+    def write_info_file(self, save_dir):
+        with open(save_dir + '/info.txt', 'w+') as file:
+            for k, v in self.get_parameter_dictionary().items():
+                print(f"{k}: {v.entry.get()}", file=file)
+    
+    def image(self):
+        # Delete Live Camera
+        if self.live_class is not None:
+            self.live_class.delete()
+
+        save_dir = (self.experiment_params['Folder'] 
+                    + '/' + self.experiment_params['Start Date']
+                    + '/'+ self.experiment_params['Concentration'] + '-' + self.experiment_params['Drug'] 
+                    + '/' + 'Chip'+ index 
+                    + '/')
+
+        # use the directories in save_dir to determine the number of times this 
+        # chip has been imaged
+        if not os.path.isdir(save_dir):
+            time_point = 't00'
+        else:
+            points = len(next(os.walk(save_dir))[1])
+            time_point= "t{0:0=2d}".format(points)
+        save_dir = save_dir + time_point
+        
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Write info file
+        self.write_info_file(save_dir)
+
+        exp_names = ['BFF', 'DAP', 'GFP', 'TXR', 'CY5']
+        exposures = []
+        if self.bff_check.get():
+            exposures.append(int(bff))
+        else:
+            exposures.append(False)
+
+
+def read_yaml(filename):
+    with open(filename, 'r') as stream:
+        try:
+            vals = yaml.safe_load(stream)
+            return vals
+        except yaml.YAMLError as exc:
+            print(exc)
+
+def get_default(name):
+    csvfile = csv.reader(open('default.csv', "r"), delimiter=",")
+    for row in csvfile:
+        if name == row[0]:
+            return row[1]
+      
+def row_col_config(frame, rows, cols):
+    for r in range(rows):
+        frame.rowconfigure(r, weight=1)    
+    for c in range(cols):
+        frame.columnconfigure(c, weight=1)
+
+class Live_Camera:
+    def __init__(self, window):
+        self.window = window
+        self.window.title("Live Camera")
+        self.window.protocol('WM_DELETE_WINDOW', self.delete)
+
+        self.vid = VideoCapture()
+
+        # Camera Scale
+        scale = 3
+        self.width = int(sc_utils.get_frame_size(self.vid.cam)[0] / scale)
+        self.height = int(sc_utils.get_frame_size(self.vid.cam)[1] / scale)
+        self.dim = (self.width, self.height)
+
+        self.canvas = tk.Canvas(window, width = self.width, height = self.height)
+        self.canvas.pack()
+
+        # Button that lets the user take a snapshot
+        self.btn_snapshot=tk.Button(window, text="Snapshot", width=50, command=self.snapshot)
+        self.btn_snapshot.pack(anchor=tk.CENTER, expand=True)
+
+        self.exp_entry = tk.Entry(window, textvariable=tk.StringVar(window, value="1"))
+        self.exp_entry.pack(anchor=tk.CENTER, expand=True)
+
+        # After it is called once, the update method will be automatically called every delay milliseconds
+        self.delay = 15
+        self.update()
+
+    def snapshot(self):
+        frame = self.vid.get_frame()
+        tif.imwrite(time.strftime("%Y%m%d%H%M%S") + '.tif', frame)
+
+    def update(self):
+        if self.exp_entry.get() is not '':
+            exp = int(self.exp_entry.get())
+        else:
+            exp = 1
+        frame = self.vid.get_frame(exp)
+        frame = cv2.resize(frame, self.dim, interpolation=cv2.INTER_AREA)
+        # img8 = (frame/4).astype('uint8')
+        frame = PIL.Image.fromarray(frame)
+        self.photo = PIL.ImageTk.PhotoImage(image = frame)
+        self.canvas.create_image(0, 0, image = self.photo, anchor = tk.NW)
+        self.window.after(self.delay, self.update)
+    
+    def delete(self):
+        global vid_open
+        self.vid.__del__()
+        self.window.destroy()
+        vid_open = False
+
+
+class VideoCapture:
+    def __init__(self):
+        self.cam = sc_utils.start_cam()
+
+    def get_frame(self, exposure):
+        frame = self.cam.get_frame(exp_time=exposure).reshape(self.cam.sensor_size[::-1])
+        frame = np.flipud(frame)
+        frame = sc_utils.bytescale(frame, high=255)
+        return frame
+
+    def __del__(self):
+        try:
+            sc_utils.close_cam(self.cam)
+        except:
+            print ('could not close camera')
+            pass
+ 
+class Ratio_Calibration:
+    def __init__(self, window, mmc, pixel_label):
+        self.window = window
+        self.window.title("Ratio Calibration")
+        self.window.protocol('WM_DELETE_WINDOW', self.delete)
+
+        self.vid = VideoCapture()
+        self.mmc = mmc
+        self.pixel_label = pixel_label
+
+        # Camera Scale
+        self.scale = 3
+        self.width = int(sc_utils.get_frame_size(self.vid.cam)[0])
+        self.height = int(sc_utils.get_frame_size(self.vid.cam)[1])
+        self.dim = (int(self.width / self.scale), int(self.height / self.scale))
+
+        self.pixel_val_1 = np.array([self.width,self.height]) / 5 / self.scale
+        self.pixel_val_2 = np.array([self.width,self.height]) / 5 * 4 / self.scale
+        
+        self.canvas = tk.Canvas(window, width=self.dim[0], height=self.dim[1])
+        self.canvas.pack()
+
+        self.first_cross = True
+
+        self.label = tk.Label(window, text="Align point on chip with cross, then press OK")
+        self.label.pack(anchor=tk.CENTER)
+        self.btn=tk.Button(window, text="OK", width=50, command=self.ok)
+        self.btn.pack(anchor=tk.CENTER, expand=True)
+
+        # After it is called once, the update method will be automatically called every delay milliseconds
+        self.delay = 15
+        self.update()
+
+    def ok(self):
+        if self.first_cross:
+            self.label['text'] = 'Align same point on chip with new cross, then press Finish'
+            self.btn['text'] = 'Finish'
+            self.first_cross = False
+            self.first_point = pos.current(self.mmc, axis='xy')
+        else:
+            self.second_point = pos.current(self.mmc, axis='xy')
+            self.delete()
+
+    def update(self):
+        exp = 1
+        frame = self.vid.get_frame(exp)
+        frame = cv2.resize(frame, self.dim, interpolation=cv2.INTER_AREA)
+        frame = PIL.Image.fromarray(frame)
+        self.photo = PIL.ImageTk.PhotoImage(image = frame)
+        self.canvas.create_image(0, 0, image = self.photo, anchor = tk.NW)
+        if self.first_cross:
+            self.canvas.create_line(self.pixel_val_1[0]-70, self.pixel_val_1[1], 
+                                    self.pixel_val_1[0]+70, self.pixel_val_1[1])
+            self.canvas.create_line(self.pixel_val_1[0], self.pixel_val_1[1]-70, 
+                                    self.pixel_val_1[0], self.pixel_val_1[1]+70)
+        else:
+            self.canvas.create_line(self.pixel_val_2[0]-70, self.pixel_val_2[1], 
+                                    self.pixel_val_2[0]+70, self.pixel_val_2[1])
+            self.canvas.create_line(self.pixel_val_2[0], self.pixel_val_2[1]-70, 
+                                    self.pixel_val_2[0], self.pixel_val_2[1]+70)
+        self.window.after(self.delay, self.update)
+    
+    def delete(self):
+        global vid_open
+        try:
+            stage_to_pixel_ratio =  sc_utils.get_stage_to_pixel_ratio(self.first_point,
+                                                                    self.second_point,
+                                                                    self.pixel_val_1 * self.scale,
+                                                                    self.pixel_val_2 * self.scale)
+            self.pixel_label.entry.set(str(stage_to_pixel_ratio))
+        except:
+            pass
+        self.vid.__del__()
+        self.window.destroy()
+        vid_open = False
+
+
+class First_Point_Calibration:
+    def __init__(self, window, mmc, chip_name, point_label, frame_to_pixel_ratio):
+        self.window = window
+        self.window.title("First Point Calibration")
+        self.window.protocol('WM_DELETE_WINDOW', self.delete)
+
+        self.vid = VideoCapture()
+        self.mmc = mmc
+        self.point_label = point_label
+        yaml = read_yaml(CONFIG_YAML_PATH)
+        for dict in yaml['chips']:
+            for key, val in dict.items():
+                if val == chip_name.entry.get():
+                    self.chip = dict 
+
+        # Camera Scale
+        self.scale = 3
+        self.width = int(sc_utils.get_frame_size(self.vid.cam)[0])
+        self.height = int(sc_utils.get_frame_size(self.vid.cam)[1])
+        self.dim = (int(self.width / self.scale), int(self.height / self.scale))
+
+        self.pixel_val_1 = np.array([self.width,self.height]) / 2 / self.scale
+
+        # Calculate rectangle size for apartment
+        self.rect_width = self.chip['street_spacing'] * (1/frame_to_pixel_ratio) / self.scale
+        self.rect_height = self.chip['apartment_spacing'] * (1/frame_to_pixel_ratio) / self.scale
+        
+        self.canvas = tk.Canvas(window, width=self.dim[0], height=self.dim[1])
+        self.canvas.pack()
+
+        self.first_cross = True
+        
+        self.label = tk.Label(window, text="Align first alignment mark on chip with cross, then press OK")
+        self.label.pack(anchor=tk.CENTER)
+        self.btn=tk.Button(window, text="OK", width=50, command=self.ok)
+        self.btn.pack(anchor=tk.CENTER, expand=True)
+
+        # After it is called once, the update method will be automatically called every delay milliseconds
+        self.delay = 15
+        self.update()
+
+    def ok(self):
+        if self.first_cross:
+            self.label['text'] = 'Align rectangle with first apartment, then press Finish'
+            self.btn['text'] = 'Finish'
+            self.first_cross = False
+            self.first_point = pos.current(self.mmc, axis='xy')
+        else:
+            self.second_point = pos.current(self.mmc, axis='xy')
+            self.delete()
+
+    def update(self):
+        exp = 1
+        frame = self.vid.get_frame(exp)
+        frame = cv2.resize(frame, self.dim, interpolation=cv2.INTER_AREA)
+        frame = PIL.Image.fromarray(frame)
+        self.photo = PIL.ImageTk.PhotoImage(image = frame)
+        self.canvas.create_image(0, 0, image = self.photo, anchor = tk.NW)
+        if self.first_cross:
+            self.canvas.create_line(self.pixel_val_1[0]-70, self.pixel_val_1[1], 
+                                    self.pixel_val_1[0]+70, self.pixel_val_1[1])
+            self.canvas.create_line(self.pixel_val_1[0], self.pixel_val_1[1]-70, 
+                                    self.pixel_val_1[0], self.pixel_val_1[1]+70)
+        else:
+            self.canvas.create_line(self.pixel_val_1[0]-self.rect_width/2, self.pixel_val_1[1]+self.rect_height/2, 
+                                    self.pixel_val_1[0]+self.rect_width/2, self.pixel_val_1[1]+self.rect_height/2)
+            self.canvas.create_line(self.pixel_val_1[0]-self.rect_width/2, self.pixel_val_1[1]-self.rect_height/2, 
+                                    self.pixel_val_1[0]+self.rect_width/2, self.pixel_val_1[1]-self.rect_height/2)
+            self.canvas.create_line(self.pixel_val_1[0]+self.rect_width/2, self.pixel_val_1[1]-self.rect_height/2, 
+                                    self.pixel_val_1[0]+self.rect_width/2, self.pixel_val_1[1]+self.rect_height/2)
+            self.canvas.create_line(self.pixel_val_1[0]-self.rect_width/2, self.pixel_val_1[1]-self.rect_height/2, 
+                                    self.pixel_val_1[0]-self.rect_width/2, self.pixel_val_1[1]+self.rect_height/2)
+
+        self.window.after(self.delay, self.update)
+    
+    def delete(self):
+        global vid_open
+        try:
+            self.point_label.entry.set('('+str(self.first_point.x - self.second_point.x)+','+
+                                    str(self.first_point.y - self.second_point.y)+')')
+        except:
+            pass
+        self.vid.__del__()
+        self.window.destroy()
+        vid_open = False
+
+def get_first_val():
+    # vs = VideoStream(src=0).start()
+    vs = VideoStream(usePiCamera=False).start() #JM changing to false since we are not using Pi camera..
+    time.sleep(2.0)
+
+    barcodeData = ''
+    # loop over the frames from the video stream
+    while True:
+        # grab the frame from the threaded video stream and resize it to
+        # have a maximum width of 400 pixels
+        frame = vs.read()
+        frame = imutils.resize(frame, width=400)
+
+        # find the barcodes in the frame and decode each of the barcodes
+        barcodes = pyzbar.decode(frame)
+
+        # loop over the detected barcodes
+        if len(barcodes) > 0:
+            barcodeData = barcodes[0].data.decode("utf-8")
+            break
+
+        # show the output frame
+        cv2.imshow("Barcode Scanner (q to exit)", frame)
+        key = cv2.waitKey(1) & 0xFF
+    
+        # if the `q` key was pressed, break from the loop
+        if key == ord("q"):
+            break
+
+    cv2.destroyAllWindows()
+    vs.stop()
+
+    return str(barcodeData)
+
+
+def main():
+    root = tk.Tk()
+    Main(root)
+    root.mainloop()
+    
+ 
+if __name__ == '__main__':
+    main()
+

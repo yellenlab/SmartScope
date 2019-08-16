@@ -32,6 +32,9 @@ def start_cam():
         raise RuntimeError('Could not start Camera')
     return cam
 
+def get_frame_size(cam):
+    return cam.shape
+
 def close_cam(cam):
     ''' Closes the PVCAM instance
     args:
@@ -41,7 +44,7 @@ def close_cam(cam):
         cam.close()
         pvc.uninit_pvcam()
     except:
-        print('Could not close Camera')
+        print_error('Could not close Camera')
 
 def get_frame(exposure):
     ''' Gets a frame from the camera '''
@@ -157,3 +160,40 @@ def bytescale(data, current_min=0, current_max=None, high=65535, low=0):
         return (bytedata.clip(low, high) + 0.5).astype('uint8')
     else:
         return (bytedata.clip(low, high) + 0.5)
+
+####################################################
+# Scope Calibration 
+####################################################
+
+def get_stage_to_pixel_ratio(stage_point_1, stage_point_2, 
+                             pixel_val_1, pixel_val_2):
+    ''' Calculates how many microns are in one pixel
+    args:
+        stage_point_1: xy StagePosition instance
+        stage_point_2: xy StagePosition instance
+        pixel_val_1: camera pixel value (x,y)
+        pixel_val_2: camera pixel value (x,y)
+    returns:
+        float
+    '''
+    stage_distance_x = np.abs(stage_point_1.x - stage_point_2.x)
+    stage_distance_y = np.abs(stage_point_1.y - stage_point_2.y)
+    pixel_distance_x = np.abs(pixel_val_1[0] - pixel_val_2[0])
+    pixel_distance_y = np.abs(pixel_val_1[1] - pixel_val_2[1])
+
+    stage_pixel_ratio_x = float(stage_distance_x) / float(pixel_distance_x)
+    stage_pixel_ratio_y = float(stage_distance_y) / float(pixel_distance_y)
+
+    return (stage_pixel_ratio_x + stage_pixel_ratio_y) / 2
+    
+####################################################
+# Printing
+####################################################
+
+def print_info(message):
+    print ('[SS INFO]:'+ message)
+
+def print_error(message):
+    print('------------------------------------------------------')
+    print ('[SS ERROR]:'+ message)
+    print('------------------------------------------------------')

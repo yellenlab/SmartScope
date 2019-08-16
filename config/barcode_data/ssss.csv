@@ -1,0 +1,19 @@
+Chip,ML
+Drug,Control
+Cell,MOLM13
+Origin,ATCC
+Start Date,20190802
+Concentration,10000
+Chip Index,00
+BFF,1
+DAP,1
+GFP,234
+TXR,1
+CY5,1
+Step Size (um),50
+Initial Focus Range (um),150
+Focus Range (um),350
+Focus Points X,50
+Focus Points Y,40
+Focus Exposure,300
+Folder,C:/Users/caleb/OneDrive/Documents

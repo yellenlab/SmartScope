@@ -168,17 +168,27 @@ def load(filename, path):
                                     z=val['z'], theta=val['theta']))
     return PositionList(positions=sp)
 
-def current(stage_controller):
+def current(stage_controller, axis='xyz'):
     ''' Gets the current stage position 
     
     arg:
         stage_controller: Micromanager instance
+        axis: axis to return
     returns:
         (x_pos, y_pos, z_pos)
     '''
-    return (sc_utils.get_x_pos(stage_controller), 
-            sc_utils.get_y_pos(stage_controller),
-            sc_utils.get_z_pos(stage_controller))
+    if axis == 'x':
+         return StagePosition(x=sc_utils.get_x_pos(stage_controller))
+    if axis == 'y':
+         return StagePosition(y=sc_utils.get_y_pos(stage_controller))
+    if axis == 'z':
+         return StagePosition(z=sc_utils.get_z_pos(stage_controller))
+    if axis == 'xy':
+         return StagePosition(x=sc_utils.get_x_pos(stage_controller), 
+                              y=sc_utils.get_y_pos(stage_controller))  
+    return StagePosition(x=sc_utils.get_x_pos(stage_controller), 
+                         y=sc_utils.get_y_pos(stage_controller),
+                         z=sc_utils.get_z_pos(stage_controller))
 
 def set_pos(stage_controller, x=None, y=None, z=None):
     ''' Sets a microscope position

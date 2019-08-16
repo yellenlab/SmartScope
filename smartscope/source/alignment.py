@@ -60,14 +60,12 @@ def find_alignment_mark(model, exposure):
 
 def move_to_center(mmc, center, camera_pixel_width=2688, camera_pixel_height=2200, 
                    frame_width=1210, frame_height=990):
-    currx = mmc.getXPosition()
-    curry = mmc.getYPosition()
-
+    cur_position = pos.current(mmc)
     frame_to_pixel_ratio = float(frame_width) / float(camera_pixel_width)
     x_change = (center[0]-(float(camera_pixel_width)/2))*frame_to_pixel_ratio
     y_change = (center[1]-(float(camera_pixel_height)/2))*frame_to_pixel_ratio
-    new_x = currx-x_change
-    new_y = curry-y_change
+    new_x = cur_position.x-x_change
+    new_y = cur_position.y-y_change
     pos.set_pos(mmc, x=new_x, y=new_y)
 
 class Error(Exception):

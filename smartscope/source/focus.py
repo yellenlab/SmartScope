@@ -41,8 +41,8 @@ def focus_from_image_stack(xy_points, mmc, delta_z=5, total_z=150, exposure=1):
     focus_model = miq.get_classifier()
     pos_list = pos.PositionList()
     # make z position array
-    cur_pos = mmc.getPosition()
-    z = get_z_list(cur_pos, delta_z, total_z)
+    cur_pos = pos.current(mmc)
+    z = get_z_list(cur_pos.z, delta_z, total_z)
     cam = sc_utils.start_cam()
     for posit in xy_points:
         # Go to the x,y position 
@@ -156,7 +156,8 @@ def predict_z_height(pos_list, xy_location=None):
     return f(xy_location[0], xy_location[1]), f
 
 def focus_point(mmc, focus_model, delta_z=10, total_z=250, exposure=1):
-    z = get_z_list(mmc.getPosition(), delta_z, total_z)
+    cur_z = pos.current(mmc).z
+    z = get_z_list(cur_z, delta_z, total_z)
     cam = sc_utils.start_cam()
 
     preds = []
