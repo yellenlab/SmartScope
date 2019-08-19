@@ -104,7 +104,7 @@ class PositionList:
         os.makedirs(dir_name)
         os.chdir(dir_name)
 
-        cam = utils.start_cam()
+        cam = sc_utils.start_cam()
 
         for ctr, pos in enumerate(self.positions):
             # set position and wait
@@ -123,7 +123,7 @@ class PositionList:
             convert_and_save(frame, save_jpg, pos, naming_scheme, convert_to_16bit=True)
             time.sleep(0.01)
         
-        utils.close_cam(cam)
+        sc_utils.close_cam(cam)
         os.chdir(orig_dir)
     
     def save(self, filename, path):

@@ -15,7 +15,7 @@ import numpy as np
 
 class Chip:
 
-    def initialize(self,corner_pl, 
+    def __init__(self,corner_pl, 
                         first_position,
                         chip,
                         number_of_apartments_in_frame_x, 
@@ -76,11 +76,8 @@ class Chip:
         x_list = range(x_steps)
         for y_ctr in range(y_steps):
             for x_ctr in x_list:
-                rotation = origin + [(self.chip['chip_width'] - (self.first_position[0] + 
-                                      self.chip['street_spacing'] * self.number_of_apartments_in_frame_x *
-                                      (x_steps - 1)) + (self.chip['street_spacing'] / 4)) + 
-                                      x_step_size*x_ctr, 
-                                     self.first_position[1] + y_step_size*y_ctr]
+                rotation = origin + [self.first_position[0] + x_step_size*x_ctr, 
+                                     self.first_position[1] - y_step_size*y_ctr]
                 posit = np.matmul(self.R, rotation)
                 name = ("_ST_"+ str(x_ctr*self.number_of_apartments_in_frame_x).zfill(3) + 
                         "_APT_" + str(y_ctr*self.number_of_apartments_in_frame_y).zfill(3) + "_")
@@ -101,19 +98,25 @@ class Chip:
 
         returns: PositionList()
         '''
-
-        delta_x = (self.total_x - self.first_position[0]*2) / (fp_x-1)
-        delta_y = (self.total_y - self.first_position[1]*2) / (fp_y-1)
+        print ("--------------")
+        print (self.first_position[0])
+        print (self.first_position[1])
+        
+        delta_x = (self.total_x - np.abs(self.first_position[0])*2) / (fp_x-1)
+        delta_y = (self.total_y - np.abs(self.first_position[1])*2) / (fp_y-1)
         origin = np.matmul(np.linalg.inv(self.R), 
                            [self.corner_poslist[0].x, 
                             self.corner_poslist[0].y])
+
+        print (delta_x)
+        print (delta_y)
 
         fp_positions = pos.PositionList()
         fp_x_list = range(fp_x)
         for y_ctr in range(fp_y):
             for x_ctr in fp_x_list:
                 rotation = origin + [self.first_position[0] + delta_x*x_ctr, 
-                                    (self.first_position[1] + delta_y*y_ctr)]
+                                    (self.first_position[1] - delta_y*y_ctr)]
                 fp = np.matmul(self.R, rotation)
                 s = pos.StagePosition(x=fp[0], y=fp[1])
                 fp_positions.append(s)

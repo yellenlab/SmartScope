@@ -27,17 +27,15 @@ from smartscope.source import position as pos
 
 classnames = ['BG', 'mark']
 
-def get_inference_model(model_dir=".",
-                        model_name="alignment_30.h5"):
+def get_inference_model(model_dir):
     ''' Loads weights and returns an inference model '''
 
-    model_path = os.path.join(model_dir, model_name)
     inference_config = mark_dataset.InferenceConfig()
     model = modellib.MaskRCNN(mode="inference", 
                               config=inference_config,
-                              model_dir=model_dir+'/logs')
-    print("Loading weights from ", model_path)
-    model.load_weights(model_path, by_name=True)
+                              model_dir=os.path.join(os.path.dirname(model_dir),'logs'))
+    sc_utils.print_info("Loading weights from "+ model_dir)
+    model.load_weights(model_dir, by_name=True)
     return model
 
 def get_mark_center(rois):
@@ -58,15 +56,25 @@ def find_alignment_mark(model, exposure):
         return centroids, orig_frame, frame, r
     raise NoMarkError("No Alignment Mark in Frame")
 
-def move_to_center(mmc, center, camera_pixel_width=2688, camera_pixel_height=2200, 
-                   frame_width=1210, frame_height=990):
+def get_center(mmc, center, frame_to_pixel_ratio, 
+                camera_pixel_width, camera_pixel_height):
     cur_position = pos.current(mmc)
-    frame_to_pixel_ratio = float(frame_width) / float(camera_pixel_width)
     x_change = (center[0]-(float(camera_pixel_width)/2))*frame_to_pixel_ratio
     y_change = (center[1]-(float(camera_pixel_height)/2))*frame_to_pixel_ratio
     new_x = cur_position.x-x_change
     new_y = cur_position.y-y_change
-    pos.set_pos(mmc, x=new_x, y=new_y)
+    return pos.StagePosition(x=new_x, y=new_y)
+
+def search_and_find_center(stage_controller, 
+                    estimate_pos, 
+                    alignment_model,
+                    exposure,
+                    frame_to_pixel_ratio,
+                    camera_pixel_width=2688, 
+                    camera_pixel_height=2200):
+    estimate_pos.goto(stage_controller)
+    center, img, frame, r = find_alignment_mark(alignment_model, exposure)
+    return get_center(stage_controller, center, frame_to_pixel_ratio, camera_pixel_width, camera_pixel_height)
 
 class Error(Exception):
     """Base class for exceptions in alignment."""

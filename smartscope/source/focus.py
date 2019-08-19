@@ -63,7 +63,7 @@ def focus_from_image_stack(xy_points, mmc, delta_z=5, total_z=150, exposure=1):
     sc_utils.close_cam(cam)
     return pos_list
 
-def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_range=35, exposure=1):
+def focus_from_last_point(xy_points, mmc, model_path, delta_z=10, total_z=150, next_point_range=35, exposure=1):
     ''' Gets a focused position list using a brute force method to find the 
     first focus point, then after that, used the last focused point as the 
     center of the new, shorter focus range. 
@@ -82,7 +82,7 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
         focused PositionList()
 
     '''
-    focus_model = miq.get_classifier()
+    focus_model = miq.get_classifier(model_path)
     pos_list = pos.PositionList()
 
     # Focus the first point 
@@ -129,6 +129,13 @@ def focus_from_last_point(xy_points, mmc, delta_z=10, total_z=150, next_point_ra
         sp = pos.StagePosition(x=posit.x, y=posit.y,
                                 z=last_z)
         pos_list.append(sp)
+
+        if len(preds) < len(z_list):
+            sc_utils.print_info ('('+ str(posit.x) + ',' +  str(posit.y) +  ') - Score: ' + str(np.min(preds)) +  ' - Good focus')
+        elif preds[best_focus_index] > 5:
+            sc_utils.print_info ('('+ str(posit.x) + ',' +  str(posit.y) +  ') - Score: ' + str(np.min(preds)) +  ' - BAD FOCUS')
+        else:
+            sc_utils.print_info ('('+ str(posit.x) + ',' +  str(posit.y) +  ') - Score: ' + str(np.min(preds)) +  ' - OK focus')
     
     sc_utils.close_cam(cam)
     return pos_list

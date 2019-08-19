@@ -20,12 +20,12 @@ DEFAULT_MODEL_PATH = DEFAULT_MODEL_DIRECTORY + "/" + os.path.basename(constants.
 logger = logging.getLogger(__name__)
 
 
-def get_model_path():
+def get_model_path(path):
     # from celldom.miq.constants import REMOTE_MODEL_CHECKPOINT_PATH
     file_extensions = [".index", ".meta", ".data-00000-of-00001"]
     cache_path = osp.join('models', 'pretrained', 'miq')
     for extension in file_extensions:
-        url = REMOTE_MODEL_CHECKPOINT_PATH + extension
+        url = path + extension
         path = osp.join(cache_path, url.split('/')[-1])
         # celldom_io.cache(url, path)
 
@@ -33,9 +33,9 @@ def get_model_path():
     # return osp.join(celldom.get_cache_dir(), cache_path, osp.basename(REMOTE_MODEL_CHECKPOINT_PATH))
 
 
-def get_classifier(tf_session_config=None):
-    # model_path = get_model_path()
-    model_path = 'model.ckpt-1000042'
+def get_classifier(model_path, tf_session_config=None):
+    # model_path = path
+    # model_path = 'model.ckpt-1000042'
     return prediction.ImageQualityClassifier(
         model_path, model_patch_side_length=84, num_classes=11,
         graph=tensorflow.Graph(), session_config=tf_session_config

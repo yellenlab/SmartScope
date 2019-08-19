@@ -32,8 +32,11 @@ def start_cam():
         raise RuntimeError('Could not start Camera')
     return cam
 
-def get_frame_size(cam):
-    return cam.shape
+def get_frame_size():
+    cam = start_cam()
+    shape = cam.shape
+    close_cam(cam)
+    return shape
 
 def close_cam(cam):
     ''' Closes the PVCAM instance
@@ -64,7 +67,6 @@ def get_live_frame(cam, exposure):
 
     '''
     return cam.get_frame(exp_time=exposure)
-####################################################
 
 ####################################################
 # To use an XYZ controller other than micro-manager,
@@ -72,7 +74,7 @@ def get_live_frame(cam, exposure):
 ####################################################
 import MMCorePy
 
-def get_stage_controller(cfg="../../config/scope_stage.cfg"):
+def get_stage_controller(cfg="../../config/scope_stage2.cfg"):
     ''' Gets an instance of the stage controller (micro-manager).
     This function can be changed to return other python controllers.
     '''
@@ -98,8 +100,37 @@ def set_z_pos(stage_controller, z):
 
 def wait_for_system(stage_controller):
     return stage_controller.waitForSystem()
-####################################################
  
+def change_shutter(controller, value):
+    if value == 'BFF':
+        index = 0
+    elif value == 'GFP':
+        index = 1
+    elif value == 'TXR':
+        index = 2
+    elif value == 'CY5':
+        index = 3
+    elif value == 'DAP':
+        index = 5
+    else:
+        print_error('Unknown shutter value: ' + value)
+    controller.setProperty('IL-Turret', 'State', index)
+
+def set_LEDs_off(controller):
+    change_LED_values(controller, 1, 0)
+    change_LED_values(controller, 2, 0)
+    change_LED_values(controller, 3, 0)
+    change_LED_values(controller, 4, 0)
+    
+def change_LED_values(controller, LED, value):
+    controller.setProperty('Thorlabs DC4100', 'Limit Current LED-'+str(LED), value)
+    controller.setProperty('Thorlabs DC4100', 'Constant Current LED-'+str(LED), value)
+    if not value == 0:
+        on_off = '1'
+    else:
+        on_off = '0'
+    controller.setSerialPortCommand('COM6', bytearray.fromhex("4F203" + str(LED-1) + "203" + on_off + "0A453F0A").decode(), "")
+
 
 ####################################################
 # Image manipulation 

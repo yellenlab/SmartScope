@@ -5,7 +5,7 @@ TODO:
 
 
 
-
+import os
 from tkinter import ttk
 import tkinter as tk
 from tkinter import filedialog
@@ -25,9 +25,11 @@ sys.path.append('C:\\Program Files\\Micro-Manager-2.0beta')
 
 from smartscope.source import position as pos
 from smartscope.source import sc_utils
+from smartscope.source import run
 
 BARCODE_PATH = '../../config/barcode_data/'
 CONFIG_YAML_PATH = '../../config/experiment_config.yml'
+LED_YAML_PATH = '../../config/led_intensities.yml'
 vid_open = False
 stage_to_pixel_ratio = 0
 first_position = [-1,-1]
@@ -68,6 +70,7 @@ class Main(tk.Frame):
         self.master = master
         tk.Frame.__init__(self, self.master)
         self.master.title("Smart Scope")
+        self.live_class = None
 
         ######################################################
         # Layout the frames and notebooks
@@ -107,7 +110,7 @@ class Main(tk.Frame):
         tk.Button(self.BarcodeFrame, text="Scan Barcode", command=self.scan_barcode).grid(row=3, column = 0, ipadx=10, ipady=3, padx=3, pady=3)
         tk.Button(self.BarcodeFrame, text="Save", command=self.save_barcode).grid(row=4, column = 0, ipadx=18, ipady=3, padx=3, pady=3)
         tk.Button(self.BarcodeFrame, text="Load", command=self.load_barcode).grid(row=5, column = 0, ipadx=18, ipady=3, padx=3, pady=3)
-        start = tk.Button(self.Sidebar, text="Start", font = ('Sans','10','bold'))
+        start = tk.Button(self.Sidebar, text="Start", font = ('Sans','10','bold'), command=self.image)
         start.grid(row=8, column = 0, ipadx=23, ipady=3, padx=3, pady=3)
 
         # Imaging
@@ -218,7 +221,7 @@ class Main(tk.Frame):
         tk.Label(self.SystemFrame, text="General").grid(row=0, column=0, columnspan=4)
         for k, v in self.system_params.items():
             if k == 'Image Rotation (degrees)':
-                self.system_params[k] = DropDown(self.ExperimentFrame, k, 
+                self.system_params[k] = DropDown(self.SystemFrame, k, 
                     get_default(k), ['0','90','180','270'], v)
             else:
                 self.system_params[k] = Entry(self.SystemFrame, k, get_default(k), v)
@@ -228,7 +231,8 @@ class Main(tk.Frame):
         # Calibration
         self.calibration_params = {
             'Frame to Pixel Ratio':2,
-            'First Position':5,
+            'First Position X':5,
+            'First Position Y':6,
         }
         self.CalibrationFrame = tk.Frame(self.system)
         self.CalibrationFrame.grid(row=0, column=2, rowspan = 14, columnspan=2 ,sticky = tk.W+tk.E+tk.N+tk.S)
@@ -244,10 +248,12 @@ class Main(tk.Frame):
         
         tk.Button(self.CalibrationFrame, text='Calibrate First Postion', command=self.first_point_calibration).grid()
         try:
-            self.calibration_params['First Position'] = Entry(self.CalibrationFrame, 'Calibrated First Postion:', self.first_position, 5)
+            self.calibration_params['First Position X'] = Entry(self.CalibrationFrame, 'Calibrated First Postion:', self.first_position, 5)
         except:
-            self.calibration_params['First Position'] = Entry(self.CalibrationFrame, 'Calibrated First Postion:', 'NOT CALIBRATED', 5)
-        tk.Label(self.CalibrationFrame, textvariable=self.calibration_params['First Position']).grid()
+            self.calibration_params['First Position X'] = Entry(self.CalibrationFrame, 'Calibrated First Postion X:', 'NOT CALIBRATED', 5)
+            self.calibration_params['First Position Y'] = Entry(self.CalibrationFrame, 'Calibrated First Postion Y:', 'NOT CALIBRATED', 6)
+        tk.Label(self.CalibrationFrame, textvariable=self.calibration_params['First Position X']).grid()
+        tk.Label(self.CalibrationFrame, textvariable=self.calibration_params['First Position Y']).grid()
 
         ######################################################
         # Get Stage Controller
@@ -259,8 +265,8 @@ class Main(tk.Frame):
         if not vid_open:
             vid_open = True
             live_cam = tk.Toplevel(self.master)
-            live_class = Live_Camera(live_cam)
-            live_class.window.mainloop()
+            self.live_class = Live_Camera(live_cam)
+            self.live_class.window.mainloop()
 
     def first_point_calibration(self):
         if self.calibration_params['Frame to Pixel Ratio'].entry.get() == 'NOT CALIBRATED':
@@ -269,16 +275,18 @@ class Main(tk.Frame):
         global vid_open
         vid_open = True
         live_cam = tk.Toplevel(self.master)
-        live_class = First_Point_Calibration(live_cam, self.mmc, self.experiment_params['Chip'], self.calibration_params['First Position'], float(self.calibration_params['Frame to Pixel Ratio'].entry.get()))
-        live_class.window.mainloop()
+        self.live_class = First_Point_Calibration(live_cam, self.mmc, self.experiment_params['Chip'], 
+                    self.calibration_params['First Position X'], self.calibration_params['First Position Y'], 
+                    float(self.calibration_params['Frame to Pixel Ratio'].entry.get()))
+        self.live_class.window.mainloop()
 
     def ratio_calibrate(self):
         global vid_open
         vid_open = True
         live_cam = tk.Toplevel(self.master)
-        live_class = Ratio_Calibration(live_cam, self.mmc, self.calibration_params['Frame to Pixel Ratio'])
-        live_class.window.update_idletasks()
-        live_class.window.update()
+        self.live_class = Ratio_Calibration(live_cam, self.mmc, self.calibration_params['Frame to Pixel Ratio'])
+        self.live_class.window.update_idletasks()
+        self.live_class.window.update()
         
     def get_directory(self, entry_field):
         folder = filedialog.askdirectory()
@@ -309,7 +317,11 @@ class Main(tk.Frame):
 
     def load_barcode(self):
         # Load all of the values from the saved barcode 
-        csvfile = csv.reader(open(BARCODE_PATH + str(self.barcode_number.get())+'.csv', 'r'), delimiter=",")
+        try:
+            csvfile = csv.reader(open(BARCODE_PATH + str(self.barcode_number.get())+'.csv', 'r'), delimiter=",")
+        except:
+            sc_utils.print_error("Could not open file: " + BARCODE_PATH + str(self.barcode_number.get())+'.csv')
+            return
         for row in csvfile:
             params = self.get_parameter_dictionary()
             for k, v in params.items():
@@ -329,10 +341,10 @@ class Main(tk.Frame):
         if self.live_class is not None:
             self.live_class.delete()
 
-        save_dir = (self.experiment_params['Folder'] 
-                    + '/' + self.experiment_params['Start Date']
-                    + '/'+ self.experiment_params['Concentration'] + '-' + self.experiment_params['Drug'] 
-                    + '/' + 'Chip'+ index 
+        save_dir = (self.saving_params['Folder'].entry.get()
+                    + '/' + self.experiment_params['Start Date'].entry.get()
+                    + '/'+ self.experiment_params['Concentration'].entry.get() + '-' + self.experiment_params['Drug'].entry.get()
+                    + '/' + self.experiment_params['Chip Index'].entry.get() 
                     + '/')
 
         # use the directories in save_dir to determine the number of times this 
@@ -343,18 +355,66 @@ class Main(tk.Frame):
             points = len(next(os.walk(save_dir))[1])
             time_point= "t{0:0=2d}".format(points)
         save_dir = save_dir + time_point
-        
+        sc_utils.print_info("Set saving directory to "+save_dir)
         os.makedirs(save_dir, exist_ok=True)
 
         # Write info file
         self.write_info_file(save_dir)
 
-        exp_names = ['BFF', 'DAP', 'GFP', 'TXR', 'CY5']
-        exposures = []
-        if self.bff_check.get():
-            exposures.append(int(bff))
-        else:
-            exposures.append(False)
+        for chip in self.config_yaml_data['chips']:
+            if chip['name'] == self.experiment_params["Chip"].entry.get():
+                cur_chip = chip
+
+        sc_utils.print_info("Using chip: "+str(cur_chip))
+
+        led_intensities = read_yaml(LED_YAML_PATH)
+        first_through = True
+        original_point = pos.current(self.mmc)
+        for val, check in self.exposure_checkboxes.items():
+            if check.get() and first_through:
+                sc_utils.change_shutter(self.mmc, val)
+                sc_utils.change_LED_values(self.mmc, 3, led_intensities[val])
+                run.auto_image_chip(cur_chip,
+                                    self.mmc,
+                                    save_dir,
+                                    self.experiment_params['Chip Index'].entry.get(),
+                                    self.system_params['Alignment Model'].entry.get(),
+                                    self.system_params['Focus Model'].entry.get(),
+                                    val,
+                                    int(self.focus_params['Step Size (um)'].entry.get()),
+                                    int(self.focus_params['Initial Focus Range (um)'].entry.get()),
+                                    int(self.focus_params['Focus Range (um)'].entry.get()),
+                                    int(self.focus_params['Focus Points X'].entry.get()),
+                                    int(self.focus_params['Focus Points Y'].entry.get()),
+                                    int(self.focus_params['Focus Exposure'].entry.get()),
+                                    int(self.system_params['Image Rotation (degrees)'].entry.get()),
+                                    float(self.calibration_params['Frame to Pixel Ratio'].entry.get()),
+                                    sc_utils.get_frame_size(),
+                                    int(self.exposure_params[val].entry.get()),
+                                    [float(self.calibration_params['First Position X'].entry.get()), 
+                                    float(self.calibration_params['First Position Y'].entry.get())],
+                                    int(self.system_params['Apartments in Image X'].entry.get()),
+                                    int(self.system_params['Apartments in Image Y'].entry.get()))
+                first_through = False
+
+            elif exp is not False:
+                input("Press Enter to continue...")
+                run.image_from_saved_positions(cur_chip, 
+                                index, 
+                                save_dir, 
+                                self.mmc, 
+                                realign=False, 
+                                alignment_model_name=alignment_model,
+                                naming_scheme=exp_names[i], 
+                                save_jpg=save_jpg,
+                                image_rotation=image_rotation,
+                                frame_width=frame_width,
+                                frame_height=frame_height,
+                                camera_pixel_width=camera_pixel_width,
+                                camera_pixel_height=camera_pixel_height,
+                                exposure=exp)
+        pos.set_pos(self.mmc, x=original_point.x, y=original_point.y, z=original_point.z)
+       
 
 
 def read_yaml(filename):
@@ -383,15 +443,15 @@ class Live_Camera:
         self.window.title("Live Camera")
         self.window.protocol('WM_DELETE_WINDOW', self.delete)
 
+        # Camera Scale
+        self.scale = 3
+        self.width = int(sc_utils.get_frame_size()[0])
+        self.height = int(sc_utils.get_frame_size()[1])
+        self.dim = (int(self.width / self.scale), int(self.height / self.scale))
+
         self.vid = VideoCapture()
 
-        # Camera Scale
-        scale = 3
-        self.width = int(sc_utils.get_frame_size(self.vid.cam)[0] / scale)
-        self.height = int(sc_utils.get_frame_size(self.vid.cam)[1] / scale)
-        self.dim = (self.width, self.height)
-
-        self.canvas = tk.Canvas(window, width = self.width, height = self.height)
+        self.canvas = tk.Canvas(window, width=self.dim[0], height=self.dim[1])
         self.canvas.pack()
 
         # Button that lets the user take a snapshot
@@ -452,15 +512,15 @@ class Ratio_Calibration:
         self.window.title("Ratio Calibration")
         self.window.protocol('WM_DELETE_WINDOW', self.delete)
 
+        # Camera Scale
+        self.scale = 3
+        self.width = int(sc_utils.get_frame_size()[0])
+        self.height = int(sc_utils.get_frame_size()[1])
+        self.dim = (int(self.width / self.scale), int(self.height / self.scale))
+
         self.vid = VideoCapture()
         self.mmc = mmc
         self.pixel_label = pixel_label
-
-        # Camera Scale
-        self.scale = 3
-        self.width = int(sc_utils.get_frame_size(self.vid.cam)[0])
-        self.height = int(sc_utils.get_frame_size(self.vid.cam)[1])
-        self.dim = (int(self.width / self.scale), int(self.height / self.scale))
 
         self.pixel_val_1 = np.array([self.width,self.height]) / 5 / self.scale
         self.pixel_val_2 = np.array([self.width,self.height]) / 5 * 4 / self.scale
@@ -524,25 +584,27 @@ class Ratio_Calibration:
 
 
 class First_Point_Calibration:
-    def __init__(self, window, mmc, chip_name, point_label, frame_to_pixel_ratio):
+    def __init__(self, window, mmc, chip_name, point_label_x, point_label_y, frame_to_pixel_ratio):
         self.window = window
         self.window.title("First Point Calibration")
         self.window.protocol('WM_DELETE_WINDOW', self.delete)
 
+        # Camera Scale
+        self.scale = 3
+        self.width = int(sc_utils.get_frame_size()[0])
+        self.height = int(sc_utils.get_frame_size()[1])
+        self.dim = (int(self.width / self.scale), int(self.height / self.scale))
+
         self.vid = VideoCapture()
         self.mmc = mmc
-        self.point_label = point_label
+        self.point_label_x = point_label_x
+        self.point_label_y = point_label_y
+        
         yaml = read_yaml(CONFIG_YAML_PATH)
         for dict in yaml['chips']:
             for key, val in dict.items():
                 if val == chip_name.entry.get():
                     self.chip = dict 
-
-        # Camera Scale
-        self.scale = 3
-        self.width = int(sc_utils.get_frame_size(self.vid.cam)[0])
-        self.height = int(sc_utils.get_frame_size(self.vid.cam)[1])
-        self.dim = (int(self.width / self.scale), int(self.height / self.scale))
 
         self.pixel_val_1 = np.array([self.width,self.height]) / 2 / self.scale
 
@@ -601,8 +663,8 @@ class First_Point_Calibration:
     def delete(self):
         global vid_open
         try:
-            self.point_label.entry.set('('+str(self.first_point.x - self.second_point.x)+','+
-                                    str(self.first_point.y - self.second_point.y)+')')
+            self.point_label_x.entry.set(str(self.first_point.x - self.second_point.x))
+            self.point_label_y.entry.set(str(self.first_point.y - self.second_point.y))
         except:
             pass
         self.vid.__del__()

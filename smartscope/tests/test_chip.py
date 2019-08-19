@@ -1,9 +1,9 @@
-import unittest
-from smartscope.source import chip
+# import unittest
+# from smartscope.source import chip
 
-class TestPosition(unittest.TestCase):
+# class TestPosition(unittest.TestCase):
     
     
 
-if __name__ == '__main__':
-    unittest.main()
+# if __name__ == '__main__':
+#     unittest.main()
