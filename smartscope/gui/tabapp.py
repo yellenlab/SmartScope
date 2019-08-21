@@ -9,6 +9,7 @@ import os
 from tkinter import ttk
 import tkinter as tk
 from tkinter import filedialog
+import tkinter.messagebox
 import csv
 import cv2
 import PIL.Image, PIL.ImageTk
@@ -149,25 +150,19 @@ class Main(tk.Frame):
                 self.experiment_params[k] = Entry(self.ExperimentFrame, k, get_default(k), v)
         
         ## Exposure
-        self.exposure_params = {
-            'BFF':1,
-            'DAP':2,
-            'GFP':3,
-            'TXR':4,
-            'CY5':5
-        }
+        self.led_intensities = read_yaml(LED_YAML_PATH)
+        # print(self.led_intensities)
+        self.exposure_params = {}
+        self.exposure_checkboxes = {}
+
+        for i, (key, val) in enumerate(self.led_intensities.items()):
+            self.exposure_params[key] = i+1
+            self.exposure_checkboxes[key] = tk.BooleanVar()
+
         self.ExposureFrame = tk.Frame(self.imaging_parameters)
         self.ExposureFrame.grid(row=9, column=0, rowspan = 4, columnspan=2 ,sticky = tk.W+tk.E+tk.N+tk.S)
         row_col_config(self.ExposureFrame, 8, 3)
         tk.Label(self.ExposureFrame, text="Exposure").grid(row=0, column=0,columnspan=2)
-
-        self.exposure_checkboxes = {
-            'BFF':tk.BooleanVar(),
-            'DAP':tk.BooleanVar(),
-            'GFP':tk.BooleanVar(),
-            'TXR':tk.BooleanVar(),
-            'CY5':tk.BooleanVar()
-        }
 
         for i, (k, v) in enumerate(self.exposure_checkboxes.items()):
             tk.Checkbutton(self.ExposureFrame, text=k, variable=v, 
@@ -265,7 +260,7 @@ class Main(tk.Frame):
         if not vid_open:
             vid_open = True
             live_cam = tk.Toplevel(self.master)
-            self.live_class = Live_Camera(live_cam)
+            self.live_class = Live_Camera(live_cam, self.mmc)
             self.live_class.window.mainloop()
 
     def first_point_calibration(self):
@@ -347,6 +342,7 @@ class Main(tk.Frame):
                     + '/' + self.experiment_params['Chip Index'].entry.get() 
                     + '/')
 
+        saved_focus = False
         # use the directories in save_dir to determine the number of times this 
         # chip has been imaged
         if not os.path.isdir(save_dir):
@@ -354,9 +350,15 @@ class Main(tk.Frame):
         else:
             points = len(next(os.walk(save_dir))[1])
             time_point= "t{0:0=2d}".format(points)
+            saved_focus = True
+        positions_dir = save_dir + 't00'
         save_dir = save_dir + time_point
         sc_utils.print_info("Set saving directory to "+save_dir)
         os.makedirs(save_dir, exist_ok=True)
+
+        if saved_focus == True:
+            saved_focus = start_popup()
+        print ("Saved Focus",saved_focus)
 
         # Write info file
         self.write_info_file(save_dir)
@@ -367,13 +369,12 @@ class Main(tk.Frame):
 
         sc_utils.print_info("Using chip: "+str(cur_chip))
 
-        led_intensities = read_yaml(LED_YAML_PATH)
+        
         first_through = True
         original_point = pos.current(self.mmc)
         for val, check in self.exposure_checkboxes.items():
-            if check.get() and first_through:
-                sc_utils.change_shutter(self.mmc, val)
-                sc_utils.change_LED_values(self.mmc, 3, led_intensities[val])
+            if check.get() and first_through and not saved_focus == True:
+                sc_utils.set_led_and_shutter(self.mmc, read_yaml(LED_YAML_PATH)[val][0])
                 run.auto_image_chip(cur_chip,
                                     self.mmc,
                                     save_dir,
@@ -397,25 +398,17 @@ class Main(tk.Frame):
                                     int(self.system_params['Apartments in Image Y'].entry.get()))
                 first_through = False
 
-            elif exp is not False:
-                input("Press Enter to continue...")
-                run.image_from_saved_positions(cur_chip, 
-                                index, 
-                                save_dir, 
-                                self.mmc, 
-                                realign=False, 
-                                alignment_model_name=alignment_model,
-                                naming_scheme=exp_names[i], 
-                                save_jpg=save_jpg,
-                                image_rotation=image_rotation,
-                                frame_width=frame_width,
-                                frame_height=frame_height,
-                                camera_pixel_width=camera_pixel_width,
-                                camera_pixel_height=camera_pixel_height,
-                                exposure=exp)
+            elif check.get():
+                sc_utils.set_led_and_shutter(self.mmc, read_yaml(LED_YAML_PATH)[val][0])
+                run.image_from_saved_positions(cur_chip, positions_dir, save_dir, self.mmc, 
+                                val, int(self.system_params['Image Rotation (degrees)'].entry.get()), 
+                                int(self.exposure_params[val].entry.get()), 
+                                [float(self.calibration_params['First Position X'].entry.get()), 
+                                float(self.calibration_params['First Position Y'].entry.get())],
+                                int(self.system_params['Apartments in Image X'].entry.get()),
+                                int(self.system_params['Apartments in Image Y'].entry.get()))
         pos.set_pos(self.mmc, x=original_point.x, y=original_point.y, z=original_point.z)
        
-
 
 def read_yaml(filename):
     with open(filename, 'r') as stream:
@@ -437,8 +430,12 @@ def row_col_config(frame, rows, cols):
     for c in range(cols):
         frame.columnconfigure(c, weight=1)
 
+def start_popup():
+    MsgBox = tk.messagebox.askyesno ('Load Saved Focus Positions','Do you want to used the previously saved foucs points for this chip?',icon = 'warning')
+    return MsgBox
+
 class Live_Camera:
-    def __init__(self, window):
+    def __init__(self, window, mmc):
         self.window = window
         self.window.title("Live Camera")
         self.window.protocol('WM_DELETE_WINDOW', self.delete)
@@ -449,7 +446,7 @@ class Live_Camera:
         self.height = int(sc_utils.get_frame_size()[1])
         self.dim = (int(self.width / self.scale), int(self.height / self.scale))
 
-        self.vid = VideoCapture()
+        self.vid = VideoCapture(mmc)
 
         self.canvas = tk.Canvas(window, width=self.dim[0], height=self.dim[1])
         self.canvas.pack()
@@ -490,7 +487,8 @@ class Live_Camera:
 
 
 class VideoCapture:
-    def __init__(self):
+    def __init__(self, mmc):
+        sc_utils.set_led_and_shutter(mmc, read_yaml(LED_YAML_PATH)['BFF'][0])
         self.cam = sc_utils.start_cam()
 
     def get_frame(self, exposure):
@@ -501,9 +499,10 @@ class VideoCapture:
 
     def __del__(self):
         try:
+            sc_utils.set_leds_off(mmc)
             sc_utils.close_cam(self.cam)
         except:
-            print ('could not close camera')
+            sc_utils.print_error ('Could not close camera')
             pass
  
 class Ratio_Calibration:
@@ -517,9 +516,8 @@ class Ratio_Calibration:
         self.width = int(sc_utils.get_frame_size()[0])
         self.height = int(sc_utils.get_frame_size()[1])
         self.dim = (int(self.width / self.scale), int(self.height / self.scale))
-
-        self.vid = VideoCapture()
         self.mmc = mmc
+        self.vid = VideoCapture(self.mmc)
         self.pixel_label = pixel_label
 
         self.pixel_val_1 = np.array([self.width,self.height]) / 5 / self.scale
@@ -594,9 +592,9 @@ class First_Point_Calibration:
         self.width = int(sc_utils.get_frame_size()[0])
         self.height = int(sc_utils.get_frame_size()[1])
         self.dim = (int(self.width / self.scale), int(self.height / self.scale))
-
-        self.vid = VideoCapture()
         self.mmc = mmc
+        self.vid = VideoCapture(self.mmc)
+
         self.point_label_x = point_label_x
         self.point_label_y = point_label_y
         

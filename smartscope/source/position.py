@@ -139,7 +139,7 @@ class PositionList:
             data[i]['numAxes'] = val.numAxes
             
         # Write to file
-        with open(path + filename + '.json', 'w') as outfile:
+        with open(path + '/' + filename + '.json', 'w') as outfile:
             json.dump(data, outfile)
 
 def convert_and_save(frame, save_jpg, pos, naming_scheme, convert_to_16bit=True):
@@ -160,7 +160,7 @@ def load(filename, path):
     returns:
         PositionList() 
     '''
-    with open(path + filename + '.json') as f:
+    with open(path + '/' + filename + '.json') as f:
         data = json.load(f,object_pairs_hook=OrderedDict)
     sp = []
     for key, val in data.items():

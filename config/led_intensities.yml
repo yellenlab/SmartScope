@@ -1,5 +1,39 @@
-BFF: 500
-DAP: 500
-GFP: 500
-TXR: 500
-CY5: 500
+#
+# Format
+# Channel name:
+#   - shutter: number representing the turret poision (defined in mmc cfg file)
+#     626 nm wavelenght: intensity (0-1000)
+#     385 nm wavelenght: intensity (0-1000)
+#     565 nm wavelenght: intensity (0-1000)
+#     490 nm wavelenght: intensity (0-1000)
+#
+BFF: 
+  - shutter: 0
+    1: 0
+    2: 0
+    3: 500
+    4: 0
+DAP: 
+  - shutter: 0
+    1: 0
+    2: 0
+    3: 500
+    4: 0
+GFP: 
+  - shutter: 0
+    1: 0
+    2: 0
+    3: 500
+    4: 0
+TXR: 
+  - shutter: 0
+    1: 0
+    2: 0
+    3: 500
+    4: 0
+CY5: 
+  - shutter: 0
+    1: 0
+    2: 0
+    3: 500
+    4: 0

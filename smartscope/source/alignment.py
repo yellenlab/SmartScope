@@ -74,7 +74,9 @@ def search_and_find_center(stage_controller,
                     camera_pixel_height=2200):
     estimate_pos.goto(stage_controller)
     center, img, frame, r = find_alignment_mark(alignment_model, exposure)
-    return get_center(stage_controller, center, frame_to_pixel_ratio, camera_pixel_width, camera_pixel_height)
+    pos = get_center(stage_controller, center, frame_to_pixel_ratio, camera_pixel_width, camera_pixel_height)
+    pos.z = estimate_pos.z
+    return pos
 
 class Error(Exception):
     """Base class for exceptions in alignment."""

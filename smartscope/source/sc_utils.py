@@ -102,19 +102,7 @@ def wait_for_system(stage_controller):
     return stage_controller.waitForSystem()
  
 def change_shutter(controller, value):
-    if value == 'BFF':
-        index = 0
-    elif value == 'GFP':
-        index = 1
-    elif value == 'TXR':
-        index = 2
-    elif value == 'CY5':
-        index = 3
-    elif value == 'DAP':
-        index = 5
-    else:
-        print_error('Unknown shutter value: ' + value)
-    controller.setProperty('IL-Turret', 'State', index)
+    controller.setProperty('IL-Turret', 'State', value)
 
 def set_LEDs_off(controller):
     change_LED_values(controller, 1, 0)
@@ -131,6 +119,12 @@ def change_LED_values(controller, LED, value):
         on_off = '0'
     controller.setSerialPortCommand('COM6', bytearray.fromhex("4F203" + str(LED-1) + "203" + on_off + "0A453F0A").decode(), "")
 
+def set_led_and_shutter(controller, val):
+    for k, v in val.items():
+        if k == 'shutter':
+            change_shutter(controller, v)
+        else:
+            change_LED_values(controller, k, v)
 
 ####################################################
 # Image manipulation 
