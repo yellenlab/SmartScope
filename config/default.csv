@@ -1,0 +1,30 @@
+Chip,KL Chip
+Cycle Number,100
+Drug,Control
+Cell,MOLM13
+Origin,ATCC
+Start Date,20190802
+Concentration,10
+Chip Index,00
+BFF,1
+DAP,1
+GFP,1
+TXR,1
+CY5,1
+Step Size (um),5
+Initial Focus Range (um),15
+Focus Range (um),35
+Focus Points X,5
+Focus Points Y,4
+Focus Exposure,30
+Folder,C:/Users/cell_ml/Desktop
+Output Image Pixel Width,2688
+Output Image Pixel Height,2200
+Alignment Model,C:/Users/cell_ml/Desktop/SC_WIN10/models/alignment_30.h5
+Focus Model,C:/Users/cell_ml/Desktop/SC_WIN10/models/model.ckpt-1000042.data-00000-of-00001
+Objective,16
+Apartments in Image X,5
+Apartments in Image Y,4
+Image Rotation (degrees),0
+Frame to Pixel Ratio,.45
+First Position,"(760.0,0.0)"

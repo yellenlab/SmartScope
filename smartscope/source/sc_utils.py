@@ -33,6 +33,9 @@ def start_cam():
     return cam
 
 def get_frame_size():
+    '''
+    returns a tuple (<image pixel width>, <image pixel height>)
+    '''
     cam = start_cam()
     shape = cam.shape
     close_cam(cam)
@@ -111,13 +114,16 @@ def set_LEDs_off(controller):
     change_LED_values(controller, 4, 0)
     
 def change_LED_values(controller, LED, value):
-    controller.setProperty('Thorlabs DC4100', 'Limit Current LED-'+str(LED), value)
-    controller.setProperty('Thorlabs DC4100', 'Constant Current LED-'+str(LED), value)
+    # controller.setProperty('Thorlabs DC4100', 'Operation Mode', 'Brightness Mode')
+    port = controller.getProperty('Thorlabs DC4100', 'Port')
     if not value == 0:
-        on_off = '1'
+        on_off = "1"
+        controller.setProperty('Thorlabs DC4100', 'Percental Brightness LED-'+str(LED), value)
+        controller.setSerialPortCommand(port, bytearray.fromhex("4F203" + str(LED-1) + "203" + on_off + "0A453F0A").decode(), "")
     else:
-        on_off = '0'
-    controller.setSerialPortCommand('COM6', bytearray.fromhex("4F203" + str(LED-1) + "203" + on_off + "0A453F0A").decode(), "")
+        on_off = "0"
+        controller.setSerialPortCommand(port, bytearray.fromhex("4F203" + str(LED-1) + "203" + on_off + "0A453F0A").decode(), "")
+        controller.setProperty('Thorlabs DC4100', 'Percental Brightness LED-'+str(LED), value)
 
 def set_led_and_shutter(controller, val):
     for k, v in val.items():

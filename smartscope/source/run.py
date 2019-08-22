@@ -1,14 +1,24 @@
-from smartscope.source import position as pos
+"""
+SmartScope 
+Functions for imaging chips.
+
+Duke University - 2019
+Licensed under the MIT License (see LICENSE for details)
+Written by Caleb Sanford
+"""
+
+import time
+import os
 import math
 import numpy as np
+
+from smartscope.source import position as pos
 from smartscope.source import focus
 from smartscope.source import alignment
 from smartscope.source import sc_utils
 from smartscope.source import chip
 
-import time
-import os
- 
+
 def auto_image_chip(cur_chip,
                     mmc,
                     save_dir,
@@ -56,21 +66,23 @@ def auto_image_chip(cur_chip,
         save_jpg: Saves images as both tiff files and jpg files if True
     '''
     start = time.time()
-    sc_utils.print_info ("Starting: Alignment, Focus, and Imaging")
+    sc_utils.print_info("Starting: Alignment, Focus, and Imaging")
 
     model = alignment.get_inference_model(alignment_model_path)
     p1 = pos.current(mmc)
     p2 = pos.StagePosition(x=p1.x + cur_chip['chip_width'], y=p1.y)
-    p3 = pos.StagePosition(x=p1.x + cur_chip['chip_width'], y=p1.y - cur_chip['chip_height'])
-    
-    # Create a temporay chip for focusing 
+    p3 = pos.StagePosition(
+        x=p1.x + cur_chip['chip_width'], y=p1.y - cur_chip['chip_height'])
+
+    # Create a temporay chip for focusing
     temp_corners = pos.PositionList(positions=[p1, p2, p3])
-    print ('Corners: ', str(temp_corners))
-    temp_chip = chip.Chip(temp_corners, first_position, cur_chip, number_of_apartments_in_frame_x, number_of_apartments_in_frame_y)
+    print('Corners: ', str(temp_corners))
+    temp_chip = chip.Chip(temp_corners, first_position, cur_chip,
+                          number_of_apartments_in_frame_x, number_of_apartments_in_frame_y)
 
     focus_pl = temp_chip.get_focus_position_list(number_of_focus_points_x,
-                                            number_of_focus_points_y)
-    print ('Focus PL: ', str(focus_pl))
+                                                 number_of_focus_points_y)
+    print('Focus PL: ', str(focus_pl))
     # return
     focused_pl = focus.focus_from_last_point(focus_pl, mmc, focus_model_path,
                                              delta_z=focus_delta_z,
@@ -85,33 +97,40 @@ def auto_image_chip(cur_chip,
 
     print(p1)
 
-    p1 = alignment.search_and_find_center(mmc, p1, model, exposure, frame_to_pixel_ratio, camera_pixels[0], camera_pixels[1])
-    p2 = alignment.search_and_find_center(mmc, p2, model, exposure, frame_to_pixel_ratio, camera_pixels[0], camera_pixels[1])
-    p3 = alignment.search_and_find_center(mmc, p3, model, exposure, frame_to_pixel_ratio, camera_pixels[0], camera_pixels[1])
-    
+    p1 = alignment.search_and_find_center(
+        mmc, p1, model, exposure, frame_to_pixel_ratio, camera_pixels[0], camera_pixels[1])
+    p2 = alignment.search_and_find_center(
+        mmc, p2, model, exposure, frame_to_pixel_ratio, camera_pixels[0], camera_pixels[1])
+    p3 = alignment.search_and_find_center(
+        mmc, p3, model, exposure, frame_to_pixel_ratio, camera_pixels[0], camera_pixels[1])
+
     align_time = time.time()
-    sc_utils.print_info ('Time for alignment:'+ str(align_time-start))
+    sc_utils.print_info('Time for alignment:' + str(align_time-start))
 
     # Create a Position List of the corners and save it
-    corners = pos.PositionList(positions=[p1,p2,p3])
+    corners = pos.PositionList(positions=[p1, p2, p3])
     corners.save('corners_pl', save_dir)
     # # Create a chip instance
-    imaging_chip = chip.Chip(corners, first_position, cur_chip, number_of_apartments_in_frame_x, number_of_apartments_in_frame_y)
+    imaging_chip = chip.Chip(corners, first_position, cur_chip,
+                             number_of_apartments_in_frame_x, number_of_apartments_in_frame_y)
     imaging_pl = imaging_chip.get_position_list(focused_pl)
-    imaging_pl.image(mmc, save_dir, naming_scheme, rotation=image_rotation, exposure=exposure)
+    imaging_pl.image(mmc, save_dir, naming_scheme,
+                     rotation=image_rotation, exposure=exposure)
 
     end = time.time()
-    sc_utils.print_info ('Total time:'+ str(end-start))
+    sc_utils.print_info('Total time:' + str(end-start))
 
 
-def image_from_saved_positions(cur_chip, positions_dir, save_dir, mmc, naming_scheme, image_rotation, exposure, first_position, number_of_apartments_in_frame_x, number_of_apartments_in_frame_y):
+def image_from_saved_positions(cur_chip, positions_dir, save_dir, mmc, naming_scheme, image_rotation, exposure,
+                               first_position, number_of_apartments_in_frame_x, number_of_apartments_in_frame_y):
     ''' Images a chip from previously saved positions '''
     start = time.time()
-    sc_utils.print_info ('Starting: Loading and Imaging')
-    loaded_chip = chip.Chip(pos.load('corners_pl', positions_dir), first_position, cur_chip, number_of_apartments_in_frame_x, number_of_apartments_in_frame_y)
+    sc_utils.print_info('Starting: Loading and Imaging')
+    loaded_chip = chip.Chip(pos.load('corners_pl', positions_dir), first_position,
+                            cur_chip, number_of_apartments_in_frame_x, number_of_apartments_in_frame_y)
     focused_pl = pos.load('focused_pl', positions_dir)
     imaging_pl = loaded_chip.get_position_list(focused_pl)
-    imaging_pl.image(mmc, save_dir, naming_scheme, rotation=image_rotation, exposure=exposure)
+    imaging_pl.image(mmc, save_dir, naming_scheme,
+                     rotation=image_rotation, exposure=exposure)
     end = time.time()
-    sc_utils.print_info ('Total time:'+ str(end-start))
-
+    sc_utils.print_info('Total time:' + str(end-start))
