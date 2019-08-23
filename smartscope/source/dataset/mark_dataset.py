@@ -40,40 +40,40 @@ class MarkDataset(utils.Dataset):
 
     def load_shapes(self, subset):
         # Add classes. We have only one class to add.
-        self.add_class("mark", 1, "mark")
+        self.add_class("Mark", 1, "Mark")
 
         # Train or validation dataset?
-        dataset_dir = os.path.join("./", subset)
+        dataset_dir = dataset_path
         
-        if subset == 'train/train':
-            annotations = json.load(open('alignment_labels.json', 'r'))
+        if subset == 'train':
+            annotations = json.load(open('train.json', 'r'))
         else:
-            annotations = json.load(open('alignment_val.json', 'r'))
+            annotations = json.load(open('val.json', 'r'))
         
         # Add images annotated with Labelbox 
         for a in annotations:
-            polys = [r['geometry'] for r in a['Label']['Mark']]  
-            polygons = []
+            print(a['Label'])
+            if 'Mark' in a['Label']:
+                polys = [r['geometry'] for r in a['Label']['Mark']] 
+                polygons = []
+
+                for i, p in enumerate(polys):
+                    x_points = [x['x'] for x in p]
+                    y_points = [y['y'] for y in p]
+                    polygons.append({'all_points_x': x_points, 'all_points_y': y_points})
+
+                # Get Image Size 
+                image_path = os.path.join(dataset_dir, a['External ID'])
+                image = imread(image_path)
+                height, width = image.shape[:2]
+
+                self.add_image(
+                    "Mark",
+                    image_id=a['External ID'],  # use file name as a unique image id
+                    path=image_path,
+                    width=width, height=height,
+                    polygons=polygons)
         
-            for i, p in enumerate(polys):
-                x_points = [x['x'] for x in p]
-                y_points = [y['y'] for y in p]
-                polygons.append({'all_points_x': x_points, 'all_points_y': y_points})
-            
-            # Get Image Size 
-            image_path = os.path.join(dataset_dir, a['External ID'])
-            image = imread(image_path)
-            height, width = image.shape[:2]
-
-            self.add_image(
-                "mark",
-                image_id=a['External ID'],  # use file name as a unique image id
-                path=image_path,
-                width=width, height=height,
-                polygons=polygons)
-        
-
-
     def load_mask(self, image_id):
         """Generate instance masks for an image.
        Returns:
@@ -83,7 +83,7 @@ class MarkDataset(utils.Dataset):
         """
         # If not a balloon dataset image, delegate to parent class.
         image_info = self.image_info[image_id]
-        if image_info["source"] != "mark":
+        if image_info["source"] != "Mark":
             return super(self.__class__, self).load_mask(image_id)
 
         # Convert polygons to a bitmap mask of shape
@@ -103,7 +103,7 @@ class MarkDataset(utils.Dataset):
     def image_reference(self, image_id):
         """Return the path of the image."""
         info = self.image_info[image_id]
-        if info["source"] == "mark":
+        if info["source"] == "Mark":
             return info["path"]
         else:
             super(self.__class__, self).image_reference(image_id)

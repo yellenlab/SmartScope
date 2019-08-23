@@ -6,14 +6,14 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 def get_predictions(mmc, focus_model, focused_z, focus_range, step_size, exposure):
-    z_loc = mmc.getPosition()
+    z_loc = sc_utils.get_z_pos(mmc)
     prediction = []
     cam = sc_utils.start_cam()
     z_range = np.arange(-focus_range/2, focus_range/2, step_size)
     for i in z_range:
-        mmc.setPosition(focused_z + i)
-        mmc.waitForSystem()
-        frame = sc_utils.get_live_frame(cam, 1)
+        sc_utils.set_z_pos(mmc, focused_z + i)
+        sc_utils.waitForSystem()
+        frame = sc_utils.get_live_frame(cam, exposure)
         prediction.append(focus_model.score(frame))
     sc_utils.close_cam(cam)
     return prediction
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     input("Focus scope on interior of chip and make sure that LED intensities match desired values set in led_intensities.yml, then press Enter.")
 
     x = np.linspace(0, 200, 80)
-    focused_z = mmc.getPosition()
+    focused_z = sc_utils.get_z_pos(mmc)
     f, ((ax1, ax2, ax3, ax4), (ax5, ax6,ax7,ax8)) = plt.subplots(2, 4, sharey=True)
     ax1.scatter(x, get_predictions(mmc, focus_model, focused_z, 200, 2.5, exp1))
     ax2.scatter(x, get_predictions(mmc, focus_model, focused_z, 200, 2.5, exp2))
@@ -43,6 +43,7 @@ if __name__ == "__main__":
     ax7.scatter(x, get_predictions(mmc, focus_model, focused_z, 200, 2.5, exp7))
     ax8.scatter(x, get_predictions(mmc, focus_model, focused_z, 200, 2.5, exp8))
 
+    sc_utils.set_z_pos(mmc, focused_z)
     f.suptitle('Focus Predictions (True Focus at ~100um)', fontsize=20)
 
     ax1.set_title(str(exp1) + ' ms Exposure')

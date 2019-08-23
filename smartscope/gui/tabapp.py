@@ -22,11 +22,13 @@ import yaml
 import numpy as np
 
 
+BARCODE_PATH = os.path.join(os.path.dirname(sys.argv[0]), '../../config/barcode_data/')
+CONFIG_YAML_PATH = os.path.join(os.path.dirname(sys.argv[0]), '../../config/experiment_config.yml')
+LED_YAML_PATH = os.path.join(os.path.dirname(sys.argv[0]), '../../config/led_intensities.yml')
 
-
-BARCODE_PATH = '../../config/barcode_data/'
-CONFIG_YAML_PATH = '../../config/experiment_config.yml'
-LED_YAML_PATH = '../../config/led_intensities.yml'
+# BARCODE_PATH = '../../config/barcode_data/'
+# CONFIG_YAML_PATH = '../../config/experiment_config.yml'
+# LED_YAML_PATH = '../../config/led_intensities.yml'
 vid_open = False
 # stage_to_pixel_ratio = 0
 # first_position = [-1, -1]
@@ -171,6 +173,8 @@ class Main(tk.Frame):
         for i, (key, val) in enumerate(self.led_intensities.items()):
             self.exposure_params[key] = i+1
             self.exposure_checkboxes[key] = tk.BooleanVar()
+            if key == 'BFF':
+                self.exposure_checkboxes[key].set(True)
 
         self.ExposureFrame = tk.Frame(self.imaging_parameters)
         self.ExposureFrame.grid(
@@ -281,11 +285,25 @@ class Main(tk.Frame):
                  textvariable=self.calibration_params['First Position X']).grid()
         tk.Label(self.CalibrationFrame,
                  textvariable=self.calibration_params['First Position Y']).grid()
+        
+        self.x_stage_dir = tk.BooleanVar()
+        self.y_stage_dir = tk.BooleanVar()
+        
+        tk.Checkbutton(self.CalibrationFrame, text='Flip X Stage Direction', variable=self.x_stage_dir,
+                           onvalue=True, offvalue=False, command=self.toggle_stage_direction).grid()
+        tk.Checkbutton(self.CalibrationFrame, text='Flip X Stage Direction', variable=self.y_stage_dir,
+                           onvalue=True, offvalue=False, command=self.toggle_stage_direction).grid()
 
         ######################################################
         # Get Stage Controller
         ######################################################
-        self.mmc = sc_utils.get_stage_controller()
+        self.mmc = sc_utils.get_stage_controller(os.path.join(os.path.dirname(sys.argv[0]),"../../config/scope_stage2.cfg"))
+
+    def toggle_stage_direction(self):
+        # stage = self.mmc.getXYStageDevice()
+        # if self.x_stage_dir = True:
+        #     self.mmc.setProperty(stage, 'AxisPolarityX', 'Reversed')
+        pass
 
     def camera(self):
         global vid_open
@@ -296,25 +314,27 @@ class Main(tk.Frame):
             self.live_class.window.mainloop()
 
     def first_point_calibration(self):
-        if self.calibration_params['Frame to Pixel Ratio'].entry.get() == 'NOT CALIBRATED':
-            sc_utils.print_error(
-                'Must calibrate the Stage to Pixel Ratio first')
-            return
         global vid_open
-        vid_open = True
-        live_cam = tk.Toplevel(self.master)
-        self.live_class = First_Point_Calibration(live_cam, self.mmc, self.experiment_params['Chip'],
-                                                  self.calibration_params['First Position X'], self.calibration_params['First Position Y'],
-                                                  float(self.calibration_params['Frame to Pixel Ratio'].entry.get()))
-        self.live_class.window.mainloop()
+        if not vid_open:
+            if self.calibration_params['Frame to Pixel Ratio'].entry.get() == '':
+                sc_utils.print_error(
+                    'Must calibrate the Stage to Pixel Ratio first')
+                return
+            vid_open = True
+            live_cam = tk.Toplevel(self.master)
+            self.live_class = First_Point_Calibration(live_cam, self.mmc, self.experiment_params['Chip'],
+                                                    self.calibration_params['First Position X'], self.calibration_params['First Position Y'],
+                                                    float(self.calibration_params['Frame to Pixel Ratio'].entry.get()))
+            self.live_class.window.mainloop()
 
     def ratio_calibrate(self):
         global vid_open
-        vid_open = True
-        live_cam = tk.Toplevel(self.master)
-        self.live_class = Ratio_Calibration(
-            live_cam, self.mmc, self.calibration_params['Frame to Pixel Ratio'])
-        self.live_class.window.mainloop()
+        if not vid_open:
+            vid_open = True
+            live_cam = tk.Toplevel(self.master)
+            self.live_class = Ratio_Calibration(
+                live_cam, self.mmc, self.calibration_params['Frame to Pixel Ratio'])
+            self.live_class.window.mainloop()
 
     def get_directory(self, entry_field):
         folder = filedialog.askdirectory()
@@ -407,6 +427,8 @@ class Main(tk.Frame):
 
         sc_utils.print_info("Using chip: "+str(cur_chip))
 
+        sc_utils.before_imaging()
+
         first_through = True
         original_point = pos.current(self.mmc)
         for val, check in self.exposure_checkboxes.items():
@@ -437,7 +459,10 @@ class Main(tk.Frame):
                                     [float(self.calibration_params['First Position X'].entry.get()),
                                      float(self.calibration_params['First Position Y'].entry.get())],
                                     int(self.system_params['Apartments in Image X'].entry.get()),
-                                    int(self.system_params['Apartments in Image Y'].entry.get()))
+                                    int(self.system_params['Apartments in Image Y'].entry.get()),
+                                    [int(self.saving_params['Output Image Pixel Width'].entry.get()),
+                                    int(self.saving_params['Output Image Pixel Height'].entry.get())])
+                                    
                 first_through = False
 
             elif check.get():
@@ -449,9 +474,14 @@ class Main(tk.Frame):
                                                [float(self.calibration_params['First Position X'].entry.get()),
                                                    float(self.calibration_params['First Position Y'].entry.get())],
                                                int(self.system_params['Apartments in Image X'].entry.get()),
-                                               int(self.system_params['Apartments in Image Y'].entry.get()))
+                                               int(self.system_params['Apartments in Image Y'].entry.get()),
+                                               [int(self.saving_params['Output Image Pixel Width'].entry.get()),
+                                                int(self.saving_params['Output Image Pixel Height'].entry.get())])
+            sc_utils.in_between_channels()
         pos.set_pos(self.mmc, x=original_point.x,
                     y=original_point.y, z=original_point.z)
+        
+        sc_utils.after_imaging()
 
 
 def read_yaml(filename):
@@ -464,7 +494,7 @@ def read_yaml(filename):
 
 
 def get_default(name):
-    csvfile = csv.reader(open('../../config/default.csv', "r"), delimiter=",")
+    csvfile = csv.reader(open(os.path.join(os.path.dirname(sys.argv[0]),'../../config/default.csv'), "r"), delimiter=",")
     for row in csvfile:
         if name == row[0]:
             return row[1]
@@ -636,7 +666,7 @@ class Ratio_Calibration:
             self.pixel_label.entry.set(str(stage_to_pixel_ratio))
         except:
             pass
-        self.vid.__del__()
+        self.vid.delete()
         self.window.destroy()
         vid_open = False
 
@@ -731,7 +761,7 @@ class First_Point_Calibration:
                 str(self.first_point.y - self.second_point.y))
         except:
             pass
-        self.vid.__del__()
+        self.vid.delete()
         self.window.destroy()
         vid_open = False
 

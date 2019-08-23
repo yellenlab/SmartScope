@@ -1,15 +1,15 @@
 Chip,KL Chip
 Cycle Number,100
-Drug,Control
+Drug,DRUG A
 Cell,MOLM13
-Origin,ATCC
+Origin,Sigma
 Start Date,20190802
 Concentration,10
-Chip Index,556
+Chip Index,0045
 BFF,1
 DAP,1
-GFP,1
-TXR,1
+GFP,156
+TXR,1ert
 CY5,1
 Step Size (um),5
 Initial Focus Range (um),15

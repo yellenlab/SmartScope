@@ -38,7 +38,8 @@ def auto_image_chip(cur_chip,
                     exposure,
                     first_position,
                     number_of_apartments_in_frame_x,
-                    number_of_apartments_in_frame_y):
+                    number_of_apartments_in_frame_y,
+                    output_pixels):
     ''' Aligns, focuses, and images given chip
 
     args:
@@ -115,14 +116,14 @@ def auto_image_chip(cur_chip,
                              number_of_apartments_in_frame_x, number_of_apartments_in_frame_y)
     imaging_pl = imaging_chip.get_position_list(focused_pl)
     imaging_pl.image(mmc, save_dir, naming_scheme,
-                     rotation=image_rotation, exposure=exposure)
+                     rotation=image_rotation, exposure=exposure, output_pixels=output_pixels)
 
     end = time.time()
     sc_utils.print_info('Total time:' + str(end-start))
 
 
 def image_from_saved_positions(cur_chip, positions_dir, save_dir, mmc, naming_scheme, image_rotation, exposure,
-                               first_position, number_of_apartments_in_frame_x, number_of_apartments_in_frame_y):
+                               first_position, number_of_apartments_in_frame_x, number_of_apartments_in_frame_y, output_pixels):
     ''' Images a chip from previously saved positions '''
     start = time.time()
     sc_utils.print_info('Starting: Loading and Imaging')
@@ -130,7 +131,7 @@ def image_from_saved_positions(cur_chip, positions_dir, save_dir, mmc, naming_sc
                             cur_chip, number_of_apartments_in_frame_x, number_of_apartments_in_frame_y)
     focused_pl = pos.load('focused_pl', positions_dir)
     imaging_pl = loaded_chip.get_position_list(focused_pl)
-    imaging_pl.image(mmc, save_dir, naming_scheme,
-                     rotation=image_rotation, exposure=exposure)
+    imaging_pl.image(mmc, save_dir, naming_scheme, 
+                     rotation=image_rotation, exposure=exposure, output_pixels=output_pixels)
     end = time.time()
     sc_utils.print_info('Total time:' + str(end-start))

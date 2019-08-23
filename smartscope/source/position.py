@@ -19,6 +19,7 @@ import tifffile as tif
 import os
 import skimage.io 
 import scipy.misc
+import cv2
 
 from smartscope.source import chip
 from smartscope.source import sc_utils
@@ -91,7 +92,7 @@ class PositionList:
             plt.xlabel('X')
             plt.ylabel('Y')
     
-    def image(self, mmc, save_dir, naming_scheme, save_jpg=False, rotation=0, exposure=1):
+    def image(self, mmc, save_dir, naming_scheme, save_jpg=False, rotation=0, exposure=1, output_pixels=[2688,2200]):
         ''' Images the positions in the PositionList
 
         args: 
@@ -109,9 +110,12 @@ class PositionList:
         for ctr, pos in enumerate(self.positions):
             # set position and wait
             set_pos(mmc, pos.x, pos.y, z=pos.z)
+            sc_utils.before_every_image()
             
             # Get image and save 
             frame = sc_utils.get_live_frame(cam, exposure)
+
+            sc_utils.after_every_image()
             frame = np.flipud(frame)
             if rotation >= 90:
                 frame = np.rot90(frame)
@@ -120,7 +124,7 @@ class PositionList:
             if rotation >= 270:
                 frame = np.rot90(frame)
             
-            convert_and_save(frame, save_jpg, pos, naming_scheme, convert_to_16bit=True)
+            convert_and_save(frame, save_jpg, pos, naming_scheme, output_pixels, convert_to_16bit=True)
             time.sleep(0.01)
         
         sc_utils.close_cam(cam)
@@ -142,9 +146,11 @@ class PositionList:
         with open(path + '/' + filename + '.json', 'w') as outfile:
             json.dump(data, outfile)
 
-def convert_and_save(frame, save_jpg, pos, naming_scheme, convert_to_16bit=True):
+def convert_and_save(frame, save_jpg, pos, naming_scheme, output_pixels, convert_to_16bit=True):
     if convert_to_16bit:
         frame = sc_utils.bytescale(frame)
+    if output_pixels != [2688, 2200]:
+        frame = cv2.resize(frame, tuple(output_pixels), interpolation = cv2.INTER_AREA)
     tif.imwrite(naming_scheme + pos.name + time.strftime("%Y%m%d%H%M") + '.tif', frame)
     if save_jpg:
         os.makedirs('jpg', exist_ok=True)

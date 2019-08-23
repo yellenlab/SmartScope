@@ -1,12 +1,3 @@
-#
-# Format
-# Channel name:
-#   - shutter: number representing the turret position (defined in mmc cfg file)
-#     626 nm wavelenght: intensity (0-100)
-#     385 nm wavelenght: intensity (0-100)
-#     565 nm wavelenght: intensity (0-100)
-#     490 nm wavelenght: intensity (0-100)
-#
 BFF: 
   - shutter: 0
     1: 0

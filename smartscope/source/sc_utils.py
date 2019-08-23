@@ -104,19 +104,26 @@ def set_z_pos(stage_controller, z):
 def wait_for_system(stage_controller):
     return stage_controller.waitForSystem()
  
+# LED and Shutter Control
+# Uncomment the following lines for manual control and be sure to comment 
+# out the corresponding autocontrol functions:
+'''
 def change_shutter(controller, value):
-    controller.setProperty('IL-Turret', 'State', value)
-
-def set_LEDs_off(controller):
-    change_LED_values(controller, 1, 0)
-    change_LED_values(controller, 2, 0)
-    change_LED_values(controller, 3, 0)
-    change_LED_values(controller, 4, 0)
+    input ('Change shutter to: '+ value + ' then press Enter')
     
 def change_LED_values(controller, LED, value):
-    # controller.setProperty('Thorlabs DC4100', 'Operation Mode', 'Brightness Mode')
+    input ('Change LED values to match: LED: ' + LED + ' value: '+ value + ' then press Enter')
+'''
+# AUTO CONTROL FUNCTIONS
+def change_shutter(controller, value):
+    controller.setProperty('IL-Turret', 'State', value)
+    
+def change_LED_values(controller, LED, value):
+    # if controller.getProperty('Thorlabs DC4100', 'Operation Mode') != 'Brightness Mode':
+    #     print ( controller.getProperty('Thorlabs DC4100', 'Operation Mode'))
+    #     controller.setProperty('Thorlabs DC4100', 'Operation Mode', 'Brightness Mode')
     port = controller.getProperty('Thorlabs DC4100', 'Port')
-    if not value == 0:
+    if value != 0:
         on_off = "1"
         controller.setProperty('Thorlabs DC4100', 'Percental Brightness LED-'+str(LED), value)
         controller.setSerialPortCommand(port, bytearray.fromhex("4F203" + str(LED-1) + "203" + on_off + "0A453F0A").decode(), "")
@@ -124,6 +131,13 @@ def change_LED_values(controller, LED, value):
         on_off = "0"
         controller.setSerialPortCommand(port, bytearray.fromhex("4F203" + str(LED-1) + "203" + on_off + "0A453F0A").decode(), "")
         controller.setProperty('Thorlabs DC4100', 'Percental Brightness LED-'+str(LED), value)
+#################################################################
+
+def set_LEDs_off(controller):
+    change_LED_values(controller, 1, 0)
+    change_LED_values(controller, 2, 0)
+    change_LED_values(controller, 3, 0)
+    change_LED_values(controller, 4, 0)
 
 def set_led_and_shutter(controller, val):
     for k, v in val.items():
@@ -131,6 +145,31 @@ def set_led_and_shutter(controller, val):
             change_shutter(controller, v)
         else:
             change_LED_values(controller, k, v)
+
+####################################################
+# General hardware control
+####################################################
+def before_imaging():
+    ''' This function runs when the start button is pressed '''
+    pass
+
+def before_every_image():
+    ''' This function runs once directly before each image is taken '''
+    pass
+
+def after_every_image():
+    ''' This function runs once directly after each image is taken '''
+    pass
+
+def after_imaging():
+    ''' This function runs when the entire imaging process is complete '''
+    pass
+
+in_between_channels():
+    ''' This function runs in between different imaging channels if more that one 
+        is selected 
+    '''
+    pass
 
 ####################################################
 # Image manipulation 
