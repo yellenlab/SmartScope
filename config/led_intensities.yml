@@ -11,10 +11,10 @@ DAP:
     3: 0
     4: 20
 GFP: 
-  - shutter: 0
+  - shutter: 1
     1: 0
-    2: 0
-    3: 50
+    2: 50
+    3: 0
     4: 0
 TXR: 
   - shutter: 0

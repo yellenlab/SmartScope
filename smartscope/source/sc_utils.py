@@ -165,7 +165,7 @@ def after_imaging():
     ''' This function runs when the entire imaging process is complete '''
     pass
 
-in_between_channels():
+def in_between_channels():
     ''' This function runs in between different imaging channels if more that one 
         is selected 
     '''

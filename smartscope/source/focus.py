@@ -92,7 +92,7 @@ def focus_from_last_point(xy_points, mmc, model_path, delta_z=10, total_z=150, n
                             z=last_z)
     pos_list.append(sp)
 
-    z_range = range(-next_point_range, next_point_range, delta_z)
+    z_range = np.arange(-next_point_range/2, next_point_range/2, delta_z)
     cam = sc_utils.start_cam()
     for i, posit in enumerate(xy_points):
         # We already did the first point
@@ -164,6 +164,8 @@ def predict_z_height(pos_list, xy_location=None):
 
 def focus_point(mmc, focus_model, delta_z=10, total_z=250, exposure=1):
     cur_z = pos.current(mmc).z
+    if total_z == 0:
+        return cur_z
     z = get_z_list(cur_z, delta_z, total_z)
     cam = sc_utils.start_cam()
 

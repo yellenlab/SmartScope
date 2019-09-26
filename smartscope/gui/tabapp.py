@@ -20,6 +20,7 @@ import imutils
 from collections import OrderedDict
 import yaml
 import numpy as np
+import tifffile as tif
 
 
 BARCODE_PATH = os.path.join(os.path.dirname(sys.argv[0]), '../../config/barcode_data/')
@@ -271,16 +272,16 @@ class Main(tk.Frame):
         tk.Button(self.CalibrationFrame, text='Calibrate Stage/Pixel Ratio',
                   command=self.ratio_calibrate).grid()
         self.calibration_params['Frame to Pixel Ratio'] = Entry(
-                self.CalibrationFrame, 'Calibrated Stage to Pixel Ratio:', get_default('Calibrated Stage to Pixel Ratio:'), 2)
+                self.CalibrationFrame, 'Calibrated Stage to Pixel Ratio:', get_default('Frame to Pixel Ratio'), 2)
         tk.Label(self.CalibrationFrame,
                  textvariable=self.calibration_params['Frame to Pixel Ratio']).grid()
 
         tk.Button(self.CalibrationFrame, text='Calibrate First Postion',
                   command=self.first_point_calibration).grid()
         self.calibration_params['First Position X'] = Entry(
-                self.CalibrationFrame, 'Calibrated First Postion X:', get_default('Calibrated First Postion X:'), 5)
+                self.CalibrationFrame, 'Calibrated First Postion X:', get_default('First Position X'), 5)
         self.calibration_params['First Position Y'] = Entry(
-                self.CalibrationFrame, 'Calibrated First Postion Y:', get_default('Calibrated First Postion Y:'), 6)
+                self.CalibrationFrame, 'Calibrated First Postion Y:', get_default('First Position Y'), 6)
         tk.Label(self.CalibrationFrame,
                  textvariable=self.calibration_params['First Position X']).grid()
         tk.Label(self.CalibrationFrame,
@@ -395,10 +396,13 @@ class Main(tk.Frame):
 
         save_dir = (self.saving_params['Folder'].entry.get()
                     + '/' + self.experiment_params['Start Date'].entry.get()
+                    + '-' + self.experiment_params['Chip'].entry.get()
+                    + '-' + self.experiment_params['Cell'].entry.get()
+                    + '-' + self.experiment_params['Drug'].entry.get()
                     + '/' + self.experiment_params['Concentration'].entry.get(
         ) + '-' + self.experiment_params['Drug'].entry.get()
             + '/' + self.experiment_params['Chip Index'].entry.get()
-            + '/')
+            + '/').replace(' ', '-')
 
         saved_focus = False
         # use the directories in save_dir to determine the number of times this
@@ -427,6 +431,18 @@ class Main(tk.Frame):
 
         sc_utils.print_info("Using chip: "+str(cur_chip))
 
+        # Check if number of focus points is too low for interpolation 
+        if int(self.focus_params['Focus Points X'].entry.get()) < 4:
+            focus_points_x = 4
+            sc_utils.print_info('Focus Points X cannot be less than 4, using 4 instead.')
+        else:
+            focus_points_x = int(self.focus_params['Focus Points X'].entry.get())
+        if int(self.focus_params['Focus Points Y'].entry.get()) < 4:
+            focus_points_y = 4
+            sc_utils.print_info('Focus Points Y cannot be less than 4, using 4 instead.')
+        else:
+            focus_points_y = int(self.focus_params['Focus Points Y'].entry.get())
+
         sc_utils.before_imaging()
 
         first_through = True
@@ -444,13 +460,13 @@ class Main(tk.Frame):
                                     save_dir,
                                     self.experiment_params['Chip Index'].entry.get(),
                                     self.system_params['Alignment Model'].entry.get(),
-                                    self.system_params['Focus Model'].entry.get(),
+                                    os.path.splitext(self.system_params['Focus Model'].entry.get())[0],
                                     val,
-                                    int(self.focus_params['Step Size (um)'].entry.get()),
+                                    float(self.focus_params['Step Size (um)'].entry.get()),
                                     int(self.focus_params['Initial Focus Range (um)'].entry.get()),
                                     int(self.focus_params['Focus Range (um)'].entry.get()),
-                                    int(self.focus_params['Focus Points X'].entry.get()),
-                                    int(self.focus_params['Focus Points Y'].entry.get()),
+                                    focus_points_x,
+                                    focus_points_y,
                                     int(self.focus_params['Focus Exposure'].entry.get()),
                                     int(self.system_params['Image Rotation (degrees)'].entry.get()),
                                     float(self.calibration_params['Frame to Pixel Ratio'].entry.get()),
@@ -518,7 +534,41 @@ class Live_Camera:
         self.window = window
         self.window.title("Live Camera")
         self.window.protocol('WM_DELETE_WINDOW', self.delete)
+        self.last_channel = ''
+        self.mmc = mmc
 
+        row_col_config(self.window, 4,4)
+
+        self.Options = tk.Frame(self.window)
+        self.Options.grid(row=0, column=0, rowspan=4, columnspan=1, sticky=tk.W+tk.E+tk.N+tk.S)
+
+        # Base the number of items in the Options frame on how many 
+        # LED configurations exist
+        self.led_intensities = read_yaml(LED_YAML_PATH)
+        row_col_config(self.Options, len(self.led_intensities.keys())+10, 2)
+
+        tk.Label(self.Options, text="Settings").grid(
+            row=0, column=0, columnspan=2)
+        
+        self.channel = tk.StringVar()
+
+        self.channels = {}
+        self.exposures = {}
+
+        for i, (key, val) in enumerate(self.led_intensities.items()):
+            self.channels[key] = tk.Radiobutton(self.Options, text=key, variable=self.channel, value=key)
+            self.channels[key].grid(row=i+3, column=0)
+            if key == 'BFF':
+                self.channels[key].select()
+
+        for i, (k, v) in enumerate(self.channels.items()):
+            self.exposures[k] = tk.StringVar(self.Options, value=get_default(k))
+            tk.Entry(self.Options, textvariable=self.exposures[k]).grid(
+                        row=i+3, column=1, sticky='EW')
+
+        self.Image = tk.Frame(self.window)
+        self.Image.grid(row=0, column=1, rowspan=4, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+        # row_col_config(self.Image, 9, 2)
         # Camera Scale
         self.scale = 3
         self.dim = tuple(
@@ -527,32 +577,38 @@ class Live_Camera:
 
         self.vid = VideoCapture(mmc)
 
-        self.canvas = tk.Canvas(window, width=self.dim[0], height=self.dim[1])
-        self.canvas.pack()
+        self.canvas = tk.Canvas(self.Image, width=self.dim[0], height=self.dim[1])
+        self.canvas.grid()
 
         # Button that lets the user take a snapshot
         self.btn_snapshot = tk.Button(
-            window, text="Snapshot", width=50, command=self.snapshot)
-        self.btn_snapshot.pack(anchor=tk.CENTER, expand=True)
+            self.Options, text="Snapshot", width=50, command=self.snapshot)
+        self.btn_snapshot.grid(row=len(self.led_intensities.keys())+9, column=0, columnspan=2)
 
-        self.exp_entry = tk.Entry(
-            window, textvariable=tk.StringVar(window, value="1"))
-        self.exp_entry.pack(anchor=tk.CENTER, expand=True)
+        # self.exp_entry = tk.Entry(
+        #     window, textvariable=tk.StringVar(window, value="1"))
+        # self.exp_entry.grid()
 
         # After it is called once, the update method will be automatically called every delay milliseconds
         self.delay = 15
         self.update()
-
+    
     def snapshot(self):
-        frame = self.vid.get_frame()
-        tif.imwrite(time.strftime("%Y%m%d%H%M%S") + '.tif', frame)
+        frame = self.vid.get_frame(self.exp)
+        file = filedialog.asksaveasfilename(title='Choose a file')
+        
+        tif.imwrite(file+'.tif', frame)
 
     def update(self):
-        if self.exp_entry.get() is not '':
-            exp = int(self.exp_entry.get())
+        if self.exposures[self.channel.get()].get() is not '':
+            self.exp = int(self.exposures[self.channel.get()].get())
         else:
-            exp = 1
-        frame = self.vid.get_frame(exp)
+            self.exp = 1
+        if self.last_channel != self.channel.get():
+            sc_utils.set_led_and_shutter(self.mmc, self.led_intensities[self.channel.get()][0])
+            self.last_channel = self.channel.get()
+
+        frame = self.vid.get_frame(self.exp)
         frame = cv2.resize(frame, self.dim, interpolation=cv2.INTER_AREA)
         # img8 = (frame/4).astype('uint8')
         frame = PIL.Image.fromarray(frame)
@@ -570,8 +626,8 @@ class Live_Camera:
 class VideoCapture:
     def __init__(self, mmc):
         self.mmc = mmc
-        sc_utils.set_led_and_shutter(
-            self.mmc, read_yaml(LED_YAML_PATH)['BFF'][0])
+        # sc_utils.set_led_and_shutter(
+        #     self.mmc, read_yaml(LED_YAML_PATH)['BFF'][0])
         self.cam = sc_utils.start_cam()
 
     def get_frame(self, exposure):
