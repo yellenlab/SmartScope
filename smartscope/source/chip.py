@@ -33,7 +33,7 @@ class Chip:
         # The given first position is the center of the first apartment 
         # we need to conver that to the center of the fist image 
         self.first_position = [
-            ((((self.number_of_apartments_in_frame_x + .5) / 2) - .5) 
+            ((((self.number_of_apartments_in_frame_x - .5) / 2) - .5) #((((self.number_of_apartments_in_frame_x + .5) / 2) - .5) 
                 * self.chip['street_spacing']) - first_position[0],
             -(((self.number_of_apartments_in_frame_y /2 ) - .5) 
                 * self.chip['apartment_spacing']) - first_position[1]

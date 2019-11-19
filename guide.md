@@ -54,8 +54,8 @@ During installation, a SmartScope.bat file will be generated in the Desktop fold
 | Step Size (um) | Distance moved in the z-direction at each interval. |
 | Initial Focus Range (um) | Total distance moved in the z-direction across all intervals to find focal plane of first point. |
 | Focus Range (um) | Total distance moved in the z-direction across all intervals to find focal plane of all focus points following the first point. |
-| Focus Points X | Number of points in the x direction for focal adjustment. |
-| Focus Points Y | Number of points in the y direction for focal adjustment. |
+| Focus Points X | Number of points in the x direction for focal adjustment. Must be greater than 3 for interpolation function to work. |
+| Focus Points Y | Number of points in the y direction for focal adjustment. Must be greater than 3 for interpolation function to work. |
 | Focus Exposure | The camera exposure to use for focusing. This value can be calibrated following the [Focus Exposure Calibration](#Focus-Exposure-Calibration) instructions. |
 
 ### Saving
@@ -93,11 +93,11 @@ The system must be calibrated every time a new objective or a new chip is used.
 
 1. The Stage to Pixel Ratio must be calibrated before the First Position. Click the Calibrate Stage/Pixel Ratio button, then follow the instruction in the pop-up.
 
-    ![Ratio](images/ratio_calibration.png)
+    ![Ratio](images/ratio_calibration.jpg)
 
 2. Once you have a value for the Ratio, you can click the Calibrate First Position button. Frist align the alignment mark nearest the (0,0) apartment with the cross. Then, align the box with the (0,0) apartment.
 
-    ![FP](images/fp_calibration.png)
+    ![FP](images/fp_calibration.jpg)
 
 ## Adding Parameters
 
@@ -260,7 +260,7 @@ To train a new model on an alignment mark dataset, take the following steps:
 
 3. Use [LabelBox](https://labelbox.com/) to create labels for all of the images generated. The original alignment_model was labeled by making a box around the center of the alignment mark. For Example:
 
-    ![Alignment Label](images/alignment_label.png)
+    ![Alignment Label](images/alignment_label.jpg)
 
     It does not matter what the label of the alignment mark looks like, but the center of the label must be the center of the alignment mark and they must be consistent.
 
@@ -287,6 +287,4 @@ The focus model used in this repo is based on [Google's Microscope Image Focus Q
 
 NOTE: The original microscopeimagequality repo must be used with python 2.
 
-## How It Works
 
-### Overall Structure

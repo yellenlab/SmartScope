@@ -7,13 +7,13 @@ chips:
    street_spacing: 194.4
    chip_width: 26000.0
    chip_height: 9500.0 
- - name: "ML Chip 01"
-   number_of_apartments: 47
-   number_of_streets: 128
-   apartment_spacing: 205.2
-   street_spacing: 194.4
-   chip_width: 26000.0
-   chip_height: 9500.0
+ - name: "G3_v4_Chip"
+   number_of_apartments: 57
+   number_of_streets: 65
+   apartment_spacing: 226.8
+   street_spacing: 302.4
+   chip_width: 20206.0
+   chip_height: 12716.0
  - name: "KL Chip"
    number_of_apartments: 34
    number_of_streets: 128

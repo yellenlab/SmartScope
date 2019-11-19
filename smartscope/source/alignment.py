@@ -1,7 +1,6 @@
 """
 SmartScope 
 Alignment related functions and classes.
-
 Duke University - 2019
 Licensed under the MIT License (see LICENSE for details)
 Written by Caleb Sanford
@@ -45,26 +44,16 @@ def get_mark_center(rois):
     ], -1)
     return centroids
 
-def find_alignment_mark(stage_controller, 
-                    estimate_pos, 
-                    alignment_model,
-                    exposure,
-                    frame_to_pixel_ratio,
-                    camera_pixel_width=2688, 
-                    camera_pixel_height=2200):
-    # go to the estimate position
-    estimate_pos.goto(stage_controller)
+def find_alignment_mark(model, exposure):
     orig_frame = sc_utils.get_frame(exposure)
     frame = sc_utils.convert_frame_to_mrcnn_format(orig_frame)
     
-    results = alignment_model.detect([frame], verbose=1)
+    results = model.detect([frame], verbose=1)
     r = results[0]
     if len(r['rois']) > 0:
         centroids = get_mark_center(r['rois'][0])
         return centroids, orig_frame, frame, r
-    else:
-        # TODO
-        pass
+    raise NoMarkError("No Alignment Mark in Frame")
 
 def get_center(mmc, center, frame_to_pixel_ratio, 
                 camera_pixel_width, camera_pixel_height):
@@ -82,16 +71,11 @@ def search_and_find_center(stage_controller,
                     frame_to_pixel_ratio,
                     camera_pixel_width=2688, 
                     camera_pixel_height=2200):
-    center, img, frame, r = find_alignment_mark(stage_controller, alignment_model, exposure)
+    estimate_pos.goto(stage_controller)
+    center, img, frame, r = find_alignment_mark(alignment_model, exposure)
     pos = get_center(stage_controller, center, frame_to_pixel_ratio, camera_pixel_width, camera_pixel_height)
     pos.z = estimate_pos.z
     return pos
-
-def extended_search(stage_controller):
-    center = pos.current(stage_controller)
-    keep_searching = True
-    while keep_searching:
-        pos.set_pos()
 
 class Error(Exception):
     """Base class for exceptions in alignment."""
@@ -99,7 +83,6 @@ class Error(Exception):
 
 class NoMarkError(Error):
     """Exception raised for errors in the alignment.
-
     Attributes:
         expression -- input expression in which the error occurred
         message -- explanation of the error
