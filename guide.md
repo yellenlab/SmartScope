@@ -18,6 +18,7 @@
 - [Training Models](#Training-Models)
   - [Alignment Model](#Alignment-Model)
   - [Focus Model](#Focus-Model)
+- [Adding Thorlabs Z Stage](#Adding-Thorlabs-Z-Stage)
 
 
 ## User Interface
@@ -287,6 +288,102 @@ The focus model used in this repo is based on [Google's Microscope Image Focus Q
 
 NOTE: The original microscopeimagequality repo must be used with python 2.
 
-## How It Works
+## Adding Thorlabs Z Stage
 
-### Overall Structure
+```bash
+git clone https://github.com/qpit/thorlabs_apt
+cd thorlabs_apt
+conda activate smartscope
+python setup.py install
+```
+
+Install the [Thorlabs APT Software](https://www.thorlabs.com/software_pages/ViewSoftwarePage.cfm?Code=APT)
+
+Copy APT.dll from the "APT installation path\APT Server" directory to the same directory as you python executable. This can be found by opening an Anaconda Prompt Powershell and executing:
+```bash
+conda activate smartscope
+python
+>>> import sys
+>>> sys.executable
+```
+This will print the location of the python.exe file. It should be similar to:
+'C:\\Users\\username\\Miniconda3\\envs\\smartscope\\python.exe'
+
+Test that the driver is working by plugging in the motor thorough USB, opening an Anaconda Prompt and executing:
+```bash
+conda activate smartscope
+python
+>>> import thorlabs_apt as apt
+>>> apt.list_available_devices()
+[(47, 49914180)]
+>>> motor = apt.Motor(49914180)
+>>> motor.move_home(True)
+>>> motor.move_to(15)
+```
+
+Make sure to use the given number for your specific motor in the apt.Motor() call. This should move the motor home, then to +15 mm.
+
+Now we need to make the changes to sc_utils.py (outlined above) for changing the motor driver, because we are using micro-manager for the x and y directions and thorlabs_apt for the z axis, we need to make the stage controller a dict. This is an example:
+
+```python
+import MMCorePy
+import thorlabs_apt as apt
+
+def get_stage_controller():
+    ''' Gets an instance of the stage controller (micro-manager),
+    and an thorlabs motor. 
+    Returns a dict
+    '''
+    mmc = MMCorePy.CMMCore()
+    mmc.loadSystemConfiguration(r"C:\Users\<path to .cfg>")
+    
+    motor = apt.Motor(<motor number>)
+
+    # Construct a dictionary with keys 'X','Y','Z' with 
+    # values depending on the motor driver used for 
+    # each axis
+    return {'X':mmc, 'Y':mmc, 'Z':motor}
+
+def get_x_pos(stage_controller):
+    return stage_controller['X'].getXPosition()
+
+def get_y_pos(stage_controller):
+    return stage_controller['Y'].getYPosition()
+
+def get_z_pos(stage_controller):
+    # This is just .position following the thorlabs_apt api
+    # We need to make sure that the units are in um
+    # By default the thorlabs controls are in mm, so we need to 
+    # multiply by 1000
+    return stage_controller['Z'].position * 1000
+
+def set_xy_pos(stage_controller, x, y):
+    return stage_controller['X'].setXYPosition(x, y)
+
+def set_z_pos(stage_controller, z):
+    # We need to make sure that the units are in um
+    # By default the thorlabs controls are in mm, so we need to 
+    # divide by 1000
+    return stage_controller['Z'].move_to(z/1000)
+
+def wait_for_system(stage_controller):
+    # delay until all motors are not moving
+    stage_controller['X'].waitForSystem()
+    while stage_controller['Z'].is_in_motion:
+        time.sleep(0.001)
+```
+Make sure the motor number from before is placed in the following command:
+```python
+motor = apt.Motor(<motor number>)
+```
+
+The last thing that needs to be adjusted is the micromanager .cfg file. Use the micro-manager hardware wizard ad described in the README to create a .cfg file for your xy stage. Then include the path to that .cfg file above in the command:
+```python
+mmc.loadSystemConfiguration(r"C:\Users\<path to .cfg>")
+```
+
+After all the changes are made, we need to rebuild the smartscope package:
+```python 
+conda activate smartscope
+cd <to SmartScope directory>
+python setup.py install
