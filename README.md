@@ -31,6 +31,11 @@ conda env create -f SmartScope\environment.yml
 conda activate smartscope
 ```
 
+For some reason the pip packages are sometimes not installed. Install them just in case:
+```
+pip install imagecodecs opencv-python pyvcam tifffile
+```
+
 Install PyVCAM
 ```
 setx PVCAM_SDK_PATH "C:\Program Files\Photometrics\PVCamSDK"
