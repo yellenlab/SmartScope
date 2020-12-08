@@ -2,6 +2,8 @@
 
 This repo contains code for tools for automated high throughput imaging using Windows or Ubuntu and Python 3. It was designed specifically for imaging with PVCAM.
 
+Please see the guide.md file for detailed explanations of parameters, calibration and customization.
+
 # Windows 10 Install
 
 ## Prerequisites
@@ -48,6 +50,11 @@ For now, this install only works with [this](https://valelab4.ucsf.edu/~MM/night
 
 Download Machine Learing Models from [here](https://www.dropbox.com/sh/jipfb9xnwcw1ssc/AACJAwnoaR7FSGBTrAv3fdhba?dl=0), unzip and place all 4 files in "SmartScope\python\notebook" directory
 
+Install smartscope package
+```
+cd SmartScope
+python setup.py install
+```
 
 ## Connecting to Scope and Stage
 * Open Mirco-Manger application
@@ -56,13 +63,7 @@ Download Machine Learing Models from [here](https://www.dropbox.com/sh/jipfb9xnw
 * Name that file scope_stage.cfg and place it in SmartScope\config
 
 ## Image Chip
-Run jupyter lab 
-```
-cd Smartscope\python\notebook
-jupyter lab
-```
-
-Open run.ipynb and run the cells
+Now there will be a SmartScope_v2.bat file on the Desktop of your machine. Execute it to run the GUI. See guide.md for more information on the different parameters and calibration. 
 
 
 *This open source software was developed with the generous support of a grant from the National Institutes of Health (1R21GM131279)*

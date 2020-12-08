@@ -85,7 +85,7 @@ During installation, a SmartScope.bat file will be generated in the Desktop fold
 | Calibrated First Position | XY distance from the center of the first alignment mark to the center of the first apartment. | This is used to calculate the positions for all of the images. |
 
 ## Saving and Loading
-
+Create a barcode number and press the buttons to save and load configurations. 
 
 
 ## System Calibration
