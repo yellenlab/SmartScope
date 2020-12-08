@@ -82,7 +82,7 @@ def search_and_find_center(stage_controller,
                     frame_to_pixel_ratio,
                     camera_pixel_width=2688, 
                     camera_pixel_height=2200):
-    center, img, frame, r = find_alignment_mark(stage_controller, alignment_model, exposure)
+    center, img, frame, r = find_alignment_mark(stage_controller, estimate_pos, alignment_model, exposure, frame_to_pixel_ratio, camera_pixel_width, camera_pixel_height)
     pos = get_center(stage_controller, center, frame_to_pixel_ratio, camera_pixel_width, camera_pixel_height)
     pos.z = estimate_pos.z
     return pos
