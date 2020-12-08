@@ -65,5 +65,7 @@ python setup.py install
 ## Image Chip
 Now there will be a SmartScope_v2.bat file on the Desktop of your machine. Execute it to run the GUI. See guide.md for more information on the different parameters and calibration. 
 
+The alignment and focus models can be found in the release 1.0.0 files. 
+
 
 *This open source software was developed with the generous support of a grant from the National Institutes of Health (1R21GM131279)*
