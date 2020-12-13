@@ -1,3 +1,7 @@
+<a href="https://zenodo.org/badge/latestdoi/180165658"><img src="https://zenodo.org/badge/180165658.svg" alt="DOI"></a>
+
+Caleb I. Sanford and Benjamin B. Yellen, yellenlab/SmartScope: v1.0 (2020) doi:10.5281/zenodo.4319319
+
 # Smart Scope
 
 This repo contains code for tools for automated high throughput imaging using Windows or Ubuntu and Python 3. It was designed specifically for imaging with PVCAM.
